@@ -2,48 +2,142 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.serializeIxObject = void 0;
 const js_moi_utils_1 = require("js-moi-utils");
+const js_moi_providers_1 = require("js-moi-providers");
 const js_moi_constants_1 = require("js-moi-constants");
 const js_polo_1 = require("js-polo");
 /**
- * Processes the payload based on the interaction type.
+ * Processes the interaction object to extract and consolidate asset funds from
+ * ix_operations and asset funds.
  *
- * @param {IxType} ixType - The interaction type.
- * @param {InteractionPayload} payload - The interaction payload.
- * @returns {InteractionPayload} - The processed interaction payload.
- * @throws {Error} - Throws an error if the interaction type is unsupported.
+ * @param {InteractionObject} ixObject - The interaction object containing ix_operations and asset funds.
+ * @returns {ProcessedIxAssetFund[]} - The consolidated list of processed asset funds.
  */
-const processPayload = (ixType, payload) => {
-    switch (ixType) {
-        case js_moi_utils_1.IxType.ASSET_MINT:
-        case js_moi_utils_1.IxType.ASSET_BURN:
-            payload = payload;
-            return {
-                ...payload,
-                asset_id: (0, js_moi_utils_1.trimHexPrefix)(payload.asset_id)
-            };
-        case js_moi_utils_1.IxType.LOGIC_DEPLOY:
-            return payload;
-        case js_moi_utils_1.IxType.LOGIC_INVOKE:
-        case js_moi_utils_1.IxType.LOGIC_ENLIST:
-            payload = payload;
-            return {
-                ...payload,
-                logic_id: (0, js_moi_utils_1.trimHexPrefix)(payload.logic_id)
-            };
-        default:
-            js_moi_utils_1.ErrorUtils.throwError("Failed to process payload, unexpected interaction type", js_moi_utils_1.ErrorCode.UNEXPECTED_ARGUMENT);
+const processFunds = (ixObject) => {
+    const assetFunds = new Map();
+    ixObject.ix_operations.forEach(operation => {
+        switch (operation.type) {
+            case js_moi_utils_1.OpType.ASSET_TRANSFER:
+            case js_moi_utils_1.OpType.ASSET_MINT:
+            case js_moi_utils_1.OpType.ASSET_BURN: {
+                const payload = operation.payload;
+                const amount = assetFunds.get(payload.asset_id) ?? 0;
+                if (typeof payload.amount === "bigint" || typeof amount === "bigint") {
+                    assetFunds.set((0, js_moi_utils_1.trimHexPrefix)(payload.asset_id), BigInt(payload.amount) + BigInt(amount));
+                    return;
+                }
+                assetFunds.set((0, js_moi_utils_1.trimHexPrefix)(payload.asset_id), Number(payload.amount) + Number(amount));
+            }
+        }
+    });
+    if (ixObject.funds != null) {
+        // Add additional asset funds to the list if not present
+        ixObject.funds.forEach(assetFund => {
+            if (!assetFunds.has((0, js_moi_utils_1.trimHexPrefix)(assetFund.asset_id))) {
+                assetFunds.set((0, js_moi_utils_1.trimHexPrefix)(assetFund.asset_id), assetFund.amount);
+            }
+        });
     }
+    return Array.from(assetFunds, ([asset_id, amount]) => ({ asset_id, amount }));
 };
 /**
- * Trims the "0x" prefix from the keys of a Map and returns a new Map.
+ * Processes a series of ix_operations and returns an array of processed participants.
+ * Each participant is derived based on the type of operation and its associated payload.
  *
- * @param {Map<string, number | bigint>} values - The input Map with keys as hexadecimal strings.
- * @returns {Map<string, number | bigint>} - A new Map with trimmed keys.
+ * @param {IxOperation[]} steps - The array of operation steps to process.
+ * @returns {ProcessedIxParticipant[]} - The array of processed participants.
+ * @throws {Error} - Throws an error if an unsupported operation type is encountered.
  */
-const processValues = (values) => {
-    const entries = new Map();
-    values.forEach((value, key) => entries.set((0, js_moi_utils_1.trimHexPrefix)(key), value));
-    return entries;
+const processParticipants = (ixObject) => {
+    const participants = new Map();
+    // Add sender to participants
+    participants.set((0, js_moi_utils_1.trimHexPrefix)(ixObject.sender), {
+        address: (0, js_moi_utils_1.hexToBytes)(ixObject.sender),
+        lock_type: js_moi_utils_1.LockType.MUTATE_LOCK
+    });
+    // Add payer if it exists
+    if (ixObject.payer != null) {
+        participants.set((0, js_moi_utils_1.trimHexPrefix)(ixObject.payer), {
+            address: (0, js_moi_utils_1.hexToBytes)(ixObject.payer),
+            lock_type: js_moi_utils_1.LockType.MUTATE_LOCK
+        });
+    }
+    // Process ix_operations and add participants
+    ixObject.ix_operations.forEach((operation) => {
+        switch (operation.type) {
+            case js_moi_utils_1.OpType.PARTICIPANT_CREATE: {
+                const participantCreatePayload = operation.payload;
+                participants.set(participantCreatePayload.address, {
+                    address: (0, js_moi_utils_1.hexToBytes)(participantCreatePayload.address),
+                    lock_type: js_moi_utils_1.LockType.MUTATE_LOCK
+                });
+                break;
+            }
+            case js_moi_utils_1.OpType.ASSET_CREATE:
+                break;
+            case js_moi_utils_1.OpType.ASSET_MINT:
+            case js_moi_utils_1.OpType.ASSET_BURN: {
+                const assetSupplyPayload = operation.payload;
+                const address = (0, js_moi_utils_1.trimHexPrefix)(assetSupplyPayload.asset_id).slice(8);
+                participants.set(address, {
+                    address: (0, js_moi_utils_1.hexToBytes)(address),
+                    lock_type: js_moi_utils_1.LockType.MUTATE_LOCK
+                });
+                break;
+            }
+            case js_moi_utils_1.OpType.ASSET_TRANSFER: {
+                const assetActionPayload = operation.payload;
+                participants.set(assetActionPayload.beneficiary, {
+                    address: (0, js_moi_utils_1.hexToBytes)(assetActionPayload.beneficiary),
+                    lock_type: js_moi_utils_1.LockType.MUTATE_LOCK
+                });
+                break;
+            }
+            case js_moi_utils_1.OpType.LOGIC_DEPLOY:
+                break;
+            case js_moi_utils_1.OpType.LOGIC_ENLIST:
+            case js_moi_utils_1.OpType.LOGIC_INVOKE: {
+                const logicPayload = operation.payload;
+                const address = (0, js_moi_utils_1.trimHexPrefix)(logicPayload.logic_id).slice(6);
+                participants.set(address, {
+                    address: (0, js_moi_utils_1.hexToBytes)(address),
+                    lock_type: js_moi_utils_1.LockType.MUTATE_LOCK
+                });
+                break;
+            }
+            default:
+                js_moi_utils_1.ErrorUtils.throwError("Unsupported Ix type", js_moi_utils_1.ErrorCode.INVALID_ARGUMENT);
+        }
+    });
+    // Add additional participants if they exist
+    if (ixObject.participants != null) {
+        ixObject.participants.forEach((participant) => {
+            const address = (0, js_moi_utils_1.trimHexPrefix)(participant.address);
+            if (!participants.has(address)) {
+                participants.set(address, {
+                    address: (0, js_moi_utils_1.hexToBytes)(participant.address),
+                    lock_type: participant.lock_type
+                });
+            }
+        });
+    }
+    return Array.from(participants.values());
+};
+/**
+ * Processes an array of ix_operations by serializing their payloads into byte form
+ * and returns the processed ix_operations.
+ *
+ * @param {IxOperation[]} ix_operations - Operations to process.
+ * @returns {ProcessedIxOperation[]} - Processed ix_operations with serialized payloads.
+ * @throws {Error} - If the payload is missing or operation type is unsupported.
+ */
+const processOperations = (ix_operations) => {
+    return ix_operations.map(operation => {
+        if (!operation.payload) {
+            js_moi_utils_1.ErrorUtils.throwError("Payload is missing!", js_moi_utils_1.ErrorCode.MISSING_ARGUMENT);
+        }
+        const payload = (0, js_moi_providers_1.serializePayload)(operation.type, operation.payload);
+        return { ...operation, payload };
+    });
 };
 /**
  * Processes the interaction object based on its type and returns the processed object.
@@ -54,36 +148,16 @@ const processValues = (values) => {
  */
 const processIxObject = (ixObject) => {
     try {
-        const processedIxObject = {
-            ...ixObject,
+        return {
             sender: (0, js_moi_utils_1.hexToBytes)(ixObject.sender),
-            receiver: (0, js_moi_utils_1.hexToBytes)(js_moi_constants_1.ZERO_ADDRESS),
-            payer: (0, js_moi_utils_1.hexToBytes)(js_moi_constants_1.ZERO_ADDRESS)
+            payer: (0, js_moi_utils_1.hexToBytes)(js_moi_constants_1.ZERO_ADDRESS),
+            nonce: ixObject.nonce,
+            fuel_price: ixObject.fuel_price,
+            fuel_limit: ixObject.fuel_limit,
+            funds: processFunds(ixObject),
+            ix_operations: processOperations(ixObject.ix_operations),
+            participants: processParticipants(ixObject),
         };
-        switch (ixObject.type) {
-            case js_moi_utils_1.IxType.VALUE_TRANSFER:
-                if (!ixObject.transfer_values) {
-                    js_moi_utils_1.ErrorUtils.throwError("Transfer values is missing!", js_moi_utils_1.ErrorCode.MISSING_ARGUMENT);
-                }
-                processedIxObject.receiver = (0, js_moi_utils_1.hexToBytes)(ixObject.receiver);
-                processedIxObject.transfer_values = processValues(ixObject.transfer_values);
-                break;
-            case js_moi_utils_1.IxType.ASSET_CREATE:
-                break;
-            case js_moi_utils_1.IxType.ASSET_MINT:
-            case js_moi_utils_1.IxType.ASSET_BURN:
-            case js_moi_utils_1.IxType.LOGIC_DEPLOY:
-            case js_moi_utils_1.IxType.LOGIC_INVOKE:
-            case js_moi_utils_1.IxType.LOGIC_ENLIST:
-                if (!ixObject.payload) {
-                    js_moi_utils_1.ErrorUtils.throwError("Payload is missing!", js_moi_utils_1.ErrorCode.MISSING_ARGUMENT);
-                }
-                processedIxObject.payload = processPayload(ixObject.type, ixObject.payload);
-                break;
-            default:
-                js_moi_utils_1.ErrorUtils.throwError("Unsupported interaction type!", js_moi_utils_1.ErrorCode.UNSUPPORTED_OPERATION);
-        }
-        return processedIxObject;
     }
     catch (err) {
         js_moi_utils_1.ErrorUtils.throwError("Failed to process interaction object", js_moi_utils_1.ErrorCode.UNKNOWN_ERROR, { originalError: err });
@@ -98,40 +172,10 @@ const processIxObject = (ixObject) => {
  */
 const serializeIxObject = (ixObject) => {
     try {
-        let polorizer = new js_polo_1.Polorizer();
         const processedIxObject = processIxObject(ixObject);
-        switch (processedIxObject.type) {
-            case js_moi_utils_1.IxType.VALUE_TRANSFER: {
-                polorizer.polorize(processedIxObject, js_moi_utils_1.ixObjectSchema);
-                return polorizer.bytes();
-            }
-            case js_moi_utils_1.IxType.ASSET_CREATE: {
-                polorizer.polorize(processedIxObject.payload, js_moi_utils_1.assetCreateSchema);
-                const payload = polorizer.bytes();
-                polorizer = new js_polo_1.Polorizer();
-                polorizer.polorize({ ...processedIxObject, payload }, js_moi_utils_1.ixObjectSchema);
-                return polorizer.bytes();
-            }
-            case js_moi_utils_1.IxType.ASSET_MINT:
-            case js_moi_utils_1.IxType.ASSET_BURN: {
-                polorizer.polorize(processedIxObject.payload, js_moi_utils_1.assetMintOrBurnSchema);
-                const payload = polorizer.bytes();
-                polorizer = new js_polo_1.Polorizer();
-                polorizer.polorize({ ...processedIxObject, payload }, js_moi_utils_1.ixObjectSchema);
-                return polorizer.bytes();
-            }
-            case js_moi_utils_1.IxType.LOGIC_DEPLOY:
-            case js_moi_utils_1.IxType.LOGIC_INVOKE:
-            case js_moi_utils_1.IxType.LOGIC_ENLIST: {
-                polorizer.polorize(processedIxObject.payload, js_moi_utils_1.logicSchema);
-                const payload = polorizer.bytes();
-                polorizer = new js_polo_1.Polorizer();
-                polorizer.polorize({ ...processedIxObject, payload }, js_moi_utils_1.ixObjectSchema);
-                return polorizer.bytes();
-            }
-            default:
-                js_moi_utils_1.ErrorUtils.throwError("Unsupported interaction type!", js_moi_utils_1.ErrorCode.UNSUPPORTED_OPERATION);
-        }
+        const polorizer = new js_polo_1.Polorizer();
+        polorizer.polorize(processedIxObject, js_moi_utils_1.ixObjectSchema);
+        return polorizer.bytes();
     }
     catch (err) {
         js_moi_utils_1.ErrorUtils.throwError("Failed to serialize interaction object", js_moi_utils_1.ErrorCode.UNKNOWN_ERROR, { originalError: err });

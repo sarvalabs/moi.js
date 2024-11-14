@@ -49,10 +49,20 @@ and so on.
 
 **Interaction**
 
-An interaction can be created, signed, and send to the MOI network. This library 
+An Interaction can be created, signed, and send to the MOI network. This library 
 provides a convenient interface for constructing interactions by specifying 
 essential details such as the recipient address, interaction type, fule price,
 fuel limit, and so on.
+
+**Operation**
+
+An Operation is a discrete action encapsulated within an Interaction. It is 
+responsible for executing specific actions, such as asset creation, transfer, 
+minting, burning, logic deployment, invocation, or enlist. Each operation 
+includes key details like the type of action being performed and the associated 
+payload. Operations are processed as part of an interaction, and their 
+execution directly impacts the state of participants and contributes to 
+changes in the overall network state.
 
 **Asset**
 

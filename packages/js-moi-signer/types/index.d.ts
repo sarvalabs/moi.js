@@ -1,6 +1,4 @@
 import { Buffer } from "buffer";
-import { InteractionPayload } from "js-moi-providers";
-import { IxType } from "js-moi-utils";
 
 export interface ISignature {
     Digest(): Uint8Array;
@@ -27,21 +25,4 @@ export interface ECDSA_S256 extends SigType {}
 
 export interface SigningAlgorithms {
     ecdsa_secp256k1: ECDSA_S256
-}
-
-export interface ProcessedIxObject {
-    type: IxType;
-    nonce?: number | bigint;
-
-    sender: Uint8Array;
-    receiver: Uint8Array;
-    payer: Uint8Array;
-
-    transfer_values?: Map<string, number | bigint>;
-    perceived_values?: Map<string, number | bigint>;
-
-    fuel_price: number | bigint;
-    fuel_limit: number | bigint;
-    
-    payload?: InteractionPayload;
 }

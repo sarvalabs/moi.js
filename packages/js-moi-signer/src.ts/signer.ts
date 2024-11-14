@@ -1,5 +1,5 @@
 import { AbstractProvider, CallorEstimateIxObject, InteractionCallResponse, InteractionObject, InteractionRequest, InteractionResponse, Options } from "js-moi-providers";
-import { ErrorCode, ErrorUtils, IxType, hexToBytes, isValidAddress } from "js-moi-utils";
+import { ErrorCode, ErrorUtils, hexToBytes, isValidAddress } from "js-moi-utils";
 import { SigType, SigningAlgorithms } from "../types";
 import ECDSA_S256 from "./ecdsa";
 import Signature from "./signature";
@@ -78,10 +78,6 @@ export abstract class Signer {
      * @throws {Error} if any of the checks fail, indicating an invalid interaction.
      */
     private async checkInteraction(method: InteractionMethod, ixObject: InteractionObject): Promise<void> {
-        if(ixObject.type == null) {
-            ErrorUtils.throwError("Interaction type is missing", ErrorCode.MISSING_ARGUMENT)
-        }
-
         if(ixObject.sender == null) {
             ErrorUtils.throwError("Sender address is missing", ErrorCode.MISSING_ARGUMENT);
         }
@@ -94,14 +90,8 @@ export abstract class Signer {
             ErrorUtils.throwError("Sender address mismatches with the signer", ErrorCode.UNEXPECTED_ARGUMENT);
         }
 
-        if(ixObject.type === IxType.VALUE_TRANSFER) {
-            if(!ixObject.receiver) {
-                ErrorUtils.throwError("Receiver address is missing", ErrorCode.MISSING_ARGUMENT);
-            }
-    
-            if(!isValidAddress(ixObject.receiver)) {
-                ErrorUtils.throwError("Invalid receiver address", ErrorCode.INVALID_ARGUMENT);
-            }
+        if(ixObject.ix_operations == null || ixObject.ix_operations.length == 0) {
+            ErrorUtils.throwError("Operations list is missing", ErrorCode.MISSING_ARGUMENT);
         }
 
         if (method === "send") {

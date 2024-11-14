@@ -1,5 +1,5 @@
-import { LogicManifest, Exception } from "js-moi-manifest";
-import { InteractionResponse, InteractionObject, LogicPayload, InteractionCallResponse } from "js-moi-providers";
+import { LogicManifest } from "js-moi-manifest";
+import { InteractionCallResponse, InteractionObject, InteractionResponse, LogicPayload } from "js-moi-providers";
 
 export interface LogicIxObject {
     routine: LogicManifest.Routine;
@@ -13,12 +13,6 @@ export interface LogicIxObject {
 
 export interface LogicIxResponse extends InteractionResponse {
     routine_name: string;
-}
-
-export interface LogicIxResult {
-    logic_id?: string;
-    output?: any;
-    error: Exception | null
 }
 
 export interface LogicIxArguments {

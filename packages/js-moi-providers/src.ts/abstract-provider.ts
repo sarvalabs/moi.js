@@ -39,8 +39,8 @@ export abstract class AbstractProvider extends EventEmitter {
     abstract getContextInfo(address: string, options?: Options): Promise<ContextInfo>
 
 
-    abstract getTesseract(address: string, with_interactions: boolean, options?: Options): Promise<Tesseract>
-    abstract getTesseract(with_interactions: boolean, options?: Options): Promise<Tesseract>
+    abstract getTesseract(address: string, with_interactions: boolean, with_commit_info: boolean, options?: Options): Promise<Tesseract>
+    abstract getTesseract(with_interactions: boolean, with_commit_info: boolean, options?: Options): Promise<Tesseract>
 
     abstract getTDU(address: string, options?: Options): Promise<TDU[]>
     abstract getInteractionByHash(ixHash: string): Promise<Interaction>

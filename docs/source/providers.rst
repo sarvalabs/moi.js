@@ -179,18 +179,31 @@ The ``ContextHash`` interface represents context hash information. It has the fo
 * ``address`` - ``string``: The address associated with the context hash.
 * ``hash`` - ``string``: The context hash value.
 
+**ExecutionResult**
+
+The ``ExecutionResult`` - ``AssetCreationResult``, ``AssetSupplyResult``, ``LogicDeployResult``, 
+``LogicInvokeResult``, or ``null``: represents the detailed outcome of a operation execution. 
+It can vary based on the specific type of operation.
+
+**OperationResult**
+
+The ``OperationResult`` interface represents the outcome of a processed operation, 
+including its type, execution status, and resulting data.
+
+* ``tx_type`` - ``string``: The type of operation.
+* ``status`` - ``number``: The status code indicating the result of the operation.
+* ``data`` - ``ExecutionResult``: The detailed operation execution result specific to the operation type or null
+
 **InteractionReceipt**
 
 The ``InteractionReceipt`` interface represents a receipt for an interaction. It has the following properties:
 
-* ``ix_type`` - ``string``: The type of the interaction.
 * ``ix_hash`` - ``string``: The hash of the interaction.
 * ``status`` - ``number``: The status of the interaction.
 * ``fuel_used`` - ``string``: The amount of fuel used for the interaction.
 * ``participants`` - ``Participant[]``: The participants involved in the interaction.
-* ``extra_data`` - ``AssetCreationReceipt | AssetMintOrBurnReceipt | LogicDeployReceipt | LogicInvokeReceipt | null``: Additional data specific to the interaction type or null.
+* ``ix_operations`` - ``OperationResult[]``: A list of operation results.
 * ``from`` - ``string``: The sender of the interaction.
-* ``to`` - ``string``: The receiver of the interaction.
 * ``ix_index`` - ``string``: The index of the interaction.
 * ``ts_hash`` - ``string``: The hash of the tesseract.
 
@@ -225,6 +238,7 @@ The ``Filter`` interface represents a filter with a unique identifier. It has th
 The ``FilterDeletionResult`` interface represents the result of a deletion operation. It has the following properties:
 
 * ``status`` - ``boolean``: Indicates whether the deletion was successful (true) or not (false).
+
 **NodeInfo**
 
 The ``NodeInfo`` interface represents information about a node. It has the following property:
@@ -245,6 +259,22 @@ The ``ConnectionsInfo`` interface provides information about connections and act
 * ``outbound_conn_count`` - ``number``: The count of outbound connections.
 * ``active_pub_sub_topics`` - A dictionary where the keys are topic strings and the values are numbers representing the count of active connections for each topic.
 
+**ParticipantCreatePayload**
+
+The ``ParticipantCreatePayload`` interface represents a payload for creating an participant. It has the following properties:
+
+* ``address`` - ``string``: The participant's address to register on the network.
+* ``amount`` - ``number | bigint``: The initial deposit amount.
+
+**AssetActionPayload**
+
+The ``AssetActionPayload`` interface represents a payload for transferring/approving/revoking an asset. It has the following properties:
+
+* ``benefactor`` - ``string``: The address that authorized access to his asset funds.
+* ``beneficiary`` - ``string``: The recipient address for the transfer/approve/revoke operation.
+* ``asset_id`` - ``string``: The ID of the asset for which to transfer/approve/revoke.
+* ``amount`` - ``number | bigint``: The amount for transfer/approve/revoke.
+
 **AssetCreatePayload**
 
 The ``AssetCreatePayload`` interface represents a payload for creating an asset. It has the following properties:
@@ -257,9 +287,9 @@ The ``AssetCreatePayload`` interface represents a payload for creating an asset.
 * ``is_logical`` - ``boolean``: Indicates whether the asset is logical (optional).
 * ``logic_payload`` - ``LogicPayload``: The payload for the associated logic (optional).
 
-**AssetMintOrBurnPayload**
+**AssetSupplyPayload**
 
-The ``AssetMintOrBurnPayload`` interface represents a payload for minting or burning an asset. It has the following properties:
+The ``AssetSupplyPayload`` interface represents a payload for minting or burning an asset. It has the following properties:
 
 * ``asset_id`` - ``string``: The ID of the asset.
 * ``amount`` - ``number | bigint``: The amount to mint or burn.
@@ -273,24 +303,45 @@ The ``LogicPayload`` interface represents a payload for logic deployment or invo
 * ``calldata`` - ``Uint8Array``: The calldata for the logic execution.
 * ``manifest`` - ``Uint8Array``: The encoded manifest to deploy (optional).
 
-**InteractionPayload**
+**OperationPayload**
 
-The ``InteractionPayload`` type represents a payload for an interaction. It can be one of the following types: ``AssetCreatePayload``, ``AssetMintOrBurnPayload``, or ``LogicPayload``.
+The ``OperationPayload`` type represents a payload for an operation. It can be one of the following types: ``ParticipantCreatePayload``, 
+``AssetActionPayload``, ``AssetCreatePayload``, ``AssetSupplyPayload``, or ``LogicPayload``.
+
+**IxFund**
+
+The ``IxFund`` type represents the asset and the amount required for validating the interaction before processing.
+
+* ``asset_id`` - ``string``: The unique identifier of the asset.
+* ``amount`` - ``number | bigint``: The total required amount for the interaction, 
+specified as either a ``number`` or a ``bigint``.
+
+**IxOperation**
+
+The ``IxOperation`` type represents an individual operation that is part of a larger interaction.
+
+* ``type`` - ``string``: The type of the operation.
+* ``payload`` - ``OperationPayload``: The specific payload corresponding to the operation.
+
+**IxParticipant**
+
+The ``IxParticipant`` type represents a participant involved in the interaction and their corresponding lock type.
+
+* ``address`` - ``string``: The address of the participant involved in the interaction.
+* ``lock_type`` - ``number``: The type of lock to acquire while processing the interaction.
 
 **InteractionObject**
 
 The ``InteractionObject`` interface represents an interaction object. It has the following properties:
 
-* ``type`` - ``IxType``: The type of the interaction.
-* ``nonce`` - ``number | bigint``: The nonce value (optional).
-* ``sender`` - ``string``: The sender of the interaction (optional).
-* ``receiver`` - ``string``: The receiver of the interaction (optional).
-* ``payer`` - ``string``: The payer of the interaction (optional).
-* ``transfer_values`` - ``Map<string, number | bigint>``: Transfer values associated with the interaction (optional).
-* ``perceived_values`` - ``Map<string, number | bigint>``: Perceived values associated with the interaction (optional).
-* ``fuel_price`` - ``number | bigint``: The fuel price for the interaction.
-* ``fuel_limit`` - ``number | bigint``: The fuel limit for the interaction.
-* ``payload`` - ``InteractionPayload``: The payload of the interaction (optional).
+* ``sender`` - ``string``: The address of the participant initiating the interaction (optional).
+* ``payer`` - ``string``: The address of the participant responsible for covering the interaction's fuel costs. (optional).
+* ``nonce`` - ``number | bigint``: A unique value used to ensure the interaction's uniqueness (optional).
+* ``funds`` - ``IxFund``: The list of asset funds required for the interaction (optional).
+* ``ix_operations`` - ``IxOperation``: The list of ix_operations that are part of the interaction and are to be executed.
+* ``pariticipants`` - ``IxParticipant``: The list of participants involved in the interaction, along with their respective lock types (optional).
+* ``fuel_price`` - ``number | bigint``: The price per unit of fuel for executing the interaction.
+* ``fuel_limit`` - ``number | bigint``: The maximum amount of fuel that can be consumed during the processing of the interaction.
 
 **CallorEstimateIxObject**
 
@@ -447,7 +498,7 @@ Tesseract
 .. code-block:: javascript
 
     // Example
-    const address  = "0xf350520ebca8c09efa19f2ed13012ceb70b2e710241748f4ac11bd4a9b43949b";
+    const address  = "0x45b9906e65c9bdf4703918aa2c78fe139ba8e32c5e0dcda585dac4c584651f08";
     const options = { 
         tesseract_number: 1 
     }
@@ -457,34 +508,52 @@ Tesseract
     // Output:
     /*
         {
-            "header": {
-                "address": "0xf350520ebca8c09efa19f2ed13012ceb70b2e710241748f4ac11bd4a9b43949b",
-                "prev_hash": "0x034e75e7d8b2910004e70d6d45157166e87fb1d47485248edf8919108179307e",
-                "height": "0x1",
-                "fuel_used": "0x64",
-                "fuel_limit": "0x3e8",
-                ...
-            },
-            "body": {
-                "state_hash": "0x82543da922babd1c32b4856edd44a4bf5881edc3714cfe90b6d1576e00164aee",
-                "context_hash": "0xa1058908a4db1594632be49790b24211cd4920a0f27b3d2b876808f910b3e320",
-                "interaction_hash": "0x8aab5bc0817393d2ea163482c13ccc0f8f3e01cef0c889b8b3cffb51e4d76894",
-                "receipt_hash": "0x3e35a1f481df15da518ef6821f7b6f340f74f4f9c3f3eb30b15944ffea144f75",
-                ...
-            },
-            "ixns": [
+            "participants": [
                 {
-                    "type": 3,
-                    "nonce": "0x0",
-                    "sender": "0xf350520ebca8c09efa19f2ed13012ceb70b2e710241748f4ac11bd4a9b43949b",
-                    "receiver": "0x0000000000000000000000000000000000000000000000000000000000000000",
-                    "payer": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "address": "0x45b9906e65c9bdf4703918aa2c78fe139ba8e32c5e0dcda585dac4c584651f08",
+                    "height": "0x2",
                     ...
-                    "hash": "0x7750a0f1c848e05f1e52204e464af0d9d2f06470117e9187bb3643216c4c4ee9"
+                },
+                {
+                    "address": "0x96c93a80bc13e4864b485937d5aca52a2e61135b03e4918c58cc2bcc1b9e7a6b",
+                    "height": "0x0",
+                    ...
+                },
+                {
+                    "address": "0xa6ba9853f131679d00da0f033516a2efe9cd53c3d54e1f9a6e60e9077e9f9384",
+                    "height": "0x2",
+                    ...
                 }
             ],
-            "seal": "0x0460afdac7733765afa6410e58ebe0d69d484dfe021fba989438c51c69c078d6677446f179176681f005c0d755979bf81c090e02fdf8544bc618463e86c2778b7764b90c813f58a5965a47c5572bcf5784743e4c6c425e4bfa0f18b043e9aff21183",
-            "hash": "0xd343a7336df38590b47e5b20cb65940f463c358a08cded7af7cd6cde63a5575f"
+            "interactions_hash": "0x0b702b5451387ab6611fe790e81e235f7b67e88ed010a5687e6a0befbea211a7",
+            "receipts_hash": "0xa777c6da47a2e2c47ff03fd8e8ba98f56dbda6f889112d6cd4c516c9b5ba54f5",
+            ...
+            "consensus_info": {
+                "evidence_hash": "0xf02307c9cc0428a59025ab4d61add5a9c5808f7de59ce16070f05117ab88329d",
+                ...
+            },
+            "seal": "0x0460aed71dc4bc5cbd827791c342af7de2ed23ec6c44accc3a3fc37aa419c11ae673efed217f7c8e3df602fc7798bb989c10096615983ed2ebeebf83d62c28da2c7f4bbbe5623b1d704e752ab7ae9516b49c5171bf6febbb5d04af5fcadd0694e880",
+            "hash": "0x9230bc7fa374304d5137fe8528b57b4b5c36763f867e2424cbc2114d07499035",
+            "ixns": [
+                {
+                    "nonce": "0x1",
+                    "sender": "0x45b9906e65c9bdf4703918aa2c78fe139ba8e32c5e0dcda585dac4c584651f08",
+                    "payer": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "fuel_price": "0x1",
+                    "fuel_limit": "0xc8",
+                    "ix_operations": [
+                        {
+                            "type": 3,
+                            "payload": {
+                                "symbol": "TOKYO",
+                                "supply": "0xc350",
+                                ...
+                            }
+                        }
+                    ],
+                    ...
+                }
+            ]
         }
     */
 
@@ -705,27 +774,48 @@ Interaction By Hash
 .. code-block:: javascript
 
     // Example
-    const ixHash = "0x7750a0f1c848e05f1e52204e464af0d9d2f06470117e9187bb3643216c4c4ee9";
+    const ixHash = "0x836dd0fd460f2fe3e6690d2552399e2ab9e9022819586b0392bc214841ff6a3a";
     const interaction = await provider.getInteractionByHash(ixHash)
     console.log(interaction)
 
     // Output
     /*
         {
-            "type": 3,
-            "nonce": "0x0",
-            "sender": "0xf350520ebca8c09efa19f2ed13012ceb70b2e710241748f4ac11bd4a9b43949b",
-            "receiver": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            ...
-            "payload": {
-                "symbol": "TESTING",
-                "supply": "0x130d41",
-                ...
-            },
-            ...
-            "hash": "0x7750a0f1c848e05f1e52204e464af0d9d2f06470117e9187bb3643216c4c4ee9",
-            "signature": "0x01473045022100d6491012bf4c3c9adbfd919100afb1de570079542197c472fb08295ab97df5f502200e58ec59d0243d8a76a20ee1e676e9f1098d351dd7c7ad55ea5777fb4ec26e5202",
-            ...
+            "nonce": "0x1",
+            "sender": "0x45b9906e65c9bdf4703918aa2c78fe139ba8e32c5e0dcda585dac4c584651f08",
+            "payer": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "fuel_price": "0x1",
+            "fuel_limit": "0xc8",
+            "ix_operations": [
+                {
+                    "type": 3,
+                    "payload": {
+                        "symbol": "TOKYO",
+                        "supply": "0xc350",
+                        ...
+                    }
+                }
+            ],
+            "hash": "0x836dd0fd460f2fe3e6690d2552399e2ab9e9022819586b0392bc214841ff6a3a",
+            "signature": "0x01473045022100bebcfc9653585af851017c5dd7ad590a29a180eee5c25f4c321049d7bef35c300220520f56228b2f93098adc54aab3647fa1951ec5404bed3bb79add72eaa199761e03",
+            "ts_hash": "0x9230bc7fa374304d5137fe8528b57b4b5c36763f867e2424cbc2114d07499035",
+            "participants": [
+                {
+                    "address": "0x45b9906e65c9bdf4703918aa2c78fe139ba8e32c5e0dcda585dac4c584651f08",
+                    "height": "0x2",
+                    ...
+                },
+                {
+                    "address": "0x96c93a80bc13e4864b485937d5aca52a2e61135b03e4918c58cc2bcc1b9e7a6b",
+                    "height": "0x0",
+                    ...
+                },
+                {
+                    "address": "0xa6ba9853f131679d00da0f033516a2efe9cd53c3d54e1f9a6e60e9077e9f9384",
+                    "height": "0x2",
+                    ...
+                }
+            ],
             "ix_index": "0x0"
         }
     */

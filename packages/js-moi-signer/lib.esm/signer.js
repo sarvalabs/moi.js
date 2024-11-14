@@ -1,4 +1,4 @@
-import { ErrorCode, ErrorUtils, IxType, hexToBytes, isValidAddress } from "js-moi-utils";
+import { ErrorCode, ErrorUtils, hexToBytes, isValidAddress } from "js-moi-utils";
 import ECDSA_S256 from "./ecdsa";
 import Signature from "./signature";
 /**
@@ -57,9 +57,6 @@ export class Signer {
      * @throws {Error} if any of the checks fail, indicating an invalid interaction.
      */
     async checkInteraction(method, ixObject) {
-        if (ixObject.type == null) {
-            ErrorUtils.throwError("Interaction type is missing", ErrorCode.MISSING_ARGUMENT);
-        }
         if (ixObject.sender == null) {
             ErrorUtils.throwError("Sender address is missing", ErrorCode.MISSING_ARGUMENT);
         }
@@ -69,13 +66,8 @@ export class Signer {
         if (this.isInitialized() && ixObject.sender !== this.getAddress()) {
             ErrorUtils.throwError("Sender address mismatches with the signer", ErrorCode.UNEXPECTED_ARGUMENT);
         }
-        if (ixObject.type === IxType.VALUE_TRANSFER) {
-            if (!ixObject.receiver) {
-                ErrorUtils.throwError("Receiver address is missing", ErrorCode.MISSING_ARGUMENT);
-            }
-            if (!isValidAddress(ixObject.receiver)) {
-                ErrorUtils.throwError("Invalid receiver address", ErrorCode.INVALID_ARGUMENT);
-            }
+        if (ixObject.ix_operations == null || ixObject.ix_operations.length == 0) {
+            ErrorUtils.throwError("Operations list is missing", ErrorCode.MISSING_ARGUMENT);
         }
         if (method === "send") {
             if (ixObject.fuel_price == null) {

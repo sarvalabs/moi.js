@@ -1,7 +1,7 @@
-import { LogicManifest } from "js-moi-manifest";
+import { LogicManifest, ManifestCoder } from "js-moi-manifest";
 import { LogicPayload, Options } from "js-moi-providers";
 import { Signer } from "js-moi-signer";
-import { ErrorCode, ErrorUtils, defineReadOnly, hexToBytes } from "js-moi-utils";
+import { ErrorCode, ErrorUtils, defineReadOnly } from "js-moi-utils";
 import { LogicIxObject, LogicIxResponse } from "../types/interaction";
 import { Routines } from "../types/logic";
 import { LogicDescriptor } from "./logic-descriptor";
@@ -99,7 +99,7 @@ export class LogicDriver<T extends Record<string, (...args: any) => any> = any> 
     /**
      * Checks if a routine is mutable based on its name.
      * 
-     * @param {string} routineName - The name of the routine.
+     * @param {string} routine - The name of the routine.
      * @returns {boolean} True if the routine is mutable, false otherwise.
      */
     private isMutableRoutine(routine: LogicManifest.Routine): boolean {
@@ -120,8 +120,10 @@ export class LogicDriver<T extends Record<string, (...args: any) => any> = any> 
 
         if(ixObject.routine.accepts && 
         Object.keys(ixObject.routine.accepts).length > 0) {
-            const calldata = this.manifestCoder.encodeArguments(ixObject.routine.name, ...ixObject.arguments);
-            payload.calldata = hexToBytes(calldata);
+            payload.calldata = this.manifestCoder.encodeArguments(
+                ixObject.routine.name, 
+                ...ixObject.arguments
+            );
         }
 
         return payload;
@@ -133,13 +135,21 @@ export class LogicDriver<T extends Record<string, (...args: any) => any> = any> 
      * 
      * @param {LogicIxResponse} response - The logic interaction response.
      * @param {number} timeout - The custom timeout for processing the result. (optional)
-     * @returns {Promise<LogicIxResult | null>} A promise that resolves to the 
+     * @returns {Promise<unknown>} A promise that resolves to the 
      logic interaction result or null.
      */
-    protected async processResult(response: LogicIxResponse, timeout?: number): Promise<unknown | null> {
+    protected async processResult(response: LogicIxResponse, timeout?: number): Promise<unknown> {
         try {
             const result = await response.result(timeout);
-            return this.manifestCoder.decodeOutput(response.routine_name, result.outputs);
+
+
+            const error = ManifestCoder.decodeException(result[0].error);
+
+            if (error != null) {
+                ErrorUtils.throwError(error.error, ErrorCode.CALL_EXCEPTION, { cause: error });
+            }
+
+            return this.manifestCoder.decodeOutput(response.routine_name, result[0].outputs)
         } catch(err) {
             throw err;
         }

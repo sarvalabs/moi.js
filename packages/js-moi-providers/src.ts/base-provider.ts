@@ -1,9 +1,7 @@
-import { LogicManifest, ManifestCoder } from "js-moi-manifest";
+import { LogicManifest } from "js-moi-manifest";
 import {
-    AssetCreationReceipt, AssetMintOrBurnReceipt, CustomError, ErrorCode, ErrorUtils, Interaction,
-    IxType, LogicDeployReceipt,
-    LogicEnlistReceipt,
-    LogicInvokeReceipt,
+    AssetCreationResult, AssetSupplyResult, ErrorCode, ErrorUtils, Interaction,
+    OpType, LogicDeployResult, LogicInvokeResult, LogicEnlistResult,
     Tesseract, bytesToHex,
     decodeBase64,
     encodeToString,
@@ -19,7 +17,7 @@ import type {
     Log, LogFilter,
     LogicManifestParams, NodeInfo, Options,
     Registry,
-    RpcResponse, Status, StatusResponse, StorageParams, SyncStatus, SyncStatusParams, TDU, TDUResponse
+    RpcResponse, Status, StatusResponse, StorageParams, SyncStatus, SyncStatusParams, TDU, TDUResponse, ExecutionResult
 } from "../types/jsonrpc";
 import { type NestedArray } from "../types/util";
 import type { ProviderEvents } from "../types/websocket";
@@ -556,7 +554,7 @@ export class BaseProvider extends AbstractProvider {
      * @returns {Promise<Tesseract>} A promise that resolves to the Tesseract.
      * @throws {Error} if there is an error executing the RPC call.
      */
-   getTesseract(address: string, with_interactions: boolean, options?: Options): Promise<Tesseract>;
+   getTesseract(address: string, with_interactions: boolean, with_commit_info: boolean, options?: Options): Promise<Tesseract>;
    /**
      * Retrieves a Tesseract for a specified tesseract hash.
      * 
@@ -566,7 +564,7 @@ export class BaseProvider extends AbstractProvider {
      * @returns {Promise<Tesseract>} A promise that resolves to the Tesseract.
      * @throws {Error} if there is an error executing the RPC call.
      */
-   getTesseract(with_interactions: boolean, options: Options): Promise<Tesseract>;
+   getTesseract(with_interactions: boolean, with_commit_info: boolean, options: Options): Promise<Tesseract>;
    /**
      * Retrieves a Tesseract for a specific address or tesseract hash.
      * 
@@ -577,26 +575,28 @@ export class BaseProvider extends AbstractProvider {
      * @throws {Error} if there is an error executing the RPC call.
      *
      * @example
-     * // Retrieve Tesseract by address with interactions and options
-     * provider.getTesseract('0x55425876a7bdad21068d629e290b22b564c4f596fdf008db47c037da0cb146db', true, { tesseract_number: '0' })
+     * // Retrieve Tesseract by address with interactions, commit_info and options
+     * provider.getTesseract('0x55425876a7bdad21068d629e290b22b564c4f596fdf008db47c037da0cb146db', true, true, { tesseract_number: '0' })
      *
      * @example
-     * // Retrieve Tesseract by tesseract hash with interactions and options
-     * provider.getTesseract(true, { tesseract_hash: '0xf1e6274efa43da9fecbb7e970be4b37e6f8f4e66eea7e323a671f02ef7a5e001' })
+     * // Retrieve Tesseract by tesseract hash with interactions, commit_info and options
+     * provider.getTesseract(true, true, { tesseract_hash: '0xf1e6274efa43da9fecbb7e970be4b37e6f8f4e66eea7e323a671f02ef7a5e001' })
      */
-   async getTesseract(arg1: unknown, arg2: unknown, arg3?: unknown): Promise<Tesseract> {
+   async getTesseract(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): Promise<Tesseract> {
         try {
             const params = {};
 
             if (typeof arg1 === 'string') {
                 params['address'] = arg1;
                 params['with_interactions'] = arg2;
-                params['options'] = arg3 ?? defaultOptions;
+                params['with_commit_info'] = arg3;
+                params['options'] = arg4 ?? defaultOptions;
             }
 
             if (typeof arg1 === 'boolean') {
                 params['with_interactions'] = arg1;
-                params['options'] = arg2 ?? defaultOptions;
+                params['with_commit_info'] = arg2;
+                params['options'] = arg3 ?? defaultOptions;
             }
 
             const response = await this.execute<Tesseract>("moi.Tesseract", params);
@@ -700,7 +700,7 @@ export class BaseProvider extends AbstractProvider {
             // call receipt bug is resolved in the protocol.
             return {
                 receipt: receipt,
-                result: this.processReceipt.bind(this, {...receipt, ix_type: toQuantity(ixObject.type)})
+                result: this.processReceipt.bind(this, receipt)
             }
         } catch (error) {
             throw error
@@ -1207,26 +1207,7 @@ export class BaseProvider extends AbstractProvider {
 
                 clearTimers();
 
-                const result = this.processReceipt(receipt);
-
-                if(result == null) {
-                    resolve(receipt);
-                    return;
-                }
-
-                const error = ManifestCoder.decodeException(result.error);
-                
-                if (error == null) {
-                    resolve(receipt);
-                    return;
-                }
-
-                const err = new CustomError(error.error, ErrorCode.ACTION_REJECTED, {
-                    ...error,
-                    receipt,
-                });
-
-                reject(err);
+                resolve(receipt);
             }
 
             await checkReceipt();
@@ -1241,47 +1222,50 @@ export class BaseProvider extends AbstractProvider {
     }
 
     /**
-     * Process the interaction receipt to determine the appropriate result based on the
-     * interaction type.
+     * Process the interaction receipt to determine the appropriate execution result 
+     * based on the operation type.
      * 
      * @param {InteractionReceipt} receipt - The interaction receipt to be processed.
-     * @returns {any} The processed result based on the interaction type.
-     * @throws {Error} If the interaction type is unsupported or the expected response
+     * @returns {ExecutionResult[]} The processed execution results based on the operation type.
+     * @throws {Error} If the operation type is unsupported or the expected response
      * data is missing.
      */
-    protected processReceipt(receipt: InteractionReceipt): any {
-        switch (hexToBN(receipt.ix_type)) {
-            case IxType.VALUE_TRANSFER:
-                return null;
-            case IxType.ASSET_CREATE:
-                if (receipt.extra_data) {
-                    return receipt.extra_data as AssetCreationReceipt;
-                }
-                throw new Error("Failed to retrieve asset creation response");
-            case IxType.ASSET_MINT:
-            case IxType.ASSET_BURN:
-                if (receipt.extra_data) {
-                    return receipt.extra_data as AssetMintOrBurnReceipt;
-                }
-                throw new Error("Failed to retrieve asset mint/burn response");
-            case IxType.LOGIC_DEPLOY:
-                if (receipt.extra_data) {
-                    return receipt.extra_data as LogicDeployReceipt;
-                }
-                throw new Error("Failed to retrieve logic deploy response");
-            case IxType.LOGIC_INVOKE:
-                if (receipt.extra_data) {
-                    return receipt.extra_data as LogicInvokeReceipt;
-                }
-                throw new Error("Failed to retrieve logic invoke response");
-            case IxType.LOGIC_ENLIST:
-                if (receipt.extra_data) {
-                    return receipt.extra_data as LogicEnlistReceipt;
-                }
-                throw new Error("Failed to retrieve logic enlist response");
-            default:
-                throw new Error("Unsupported interaction type encountered");
-        }
+    protected processReceipt(receipt: InteractionReceipt): ExecutionResult[] {
+        return receipt.ix_operations.map(operation => {
+            switch (hexToBN(operation.tx_type)) {
+                case OpType.PARTICIPANT_CREATE:
+                case OpType.ASSET_TRANSFER:
+                    return null;
+                case OpType.ASSET_CREATE:
+                    if (operation.data) {
+                        return operation.data as AssetCreationResult;
+                    }
+                    throw new Error("Failed to retrieve asset creation response");
+                case OpType.ASSET_MINT:
+                case OpType.ASSET_BURN:
+                    if (operation.data) {
+                        return operation.data as AssetSupplyResult;
+                    }
+                    throw new Error("Failed to retrieve asset mint/burn response");
+                case OpType.LOGIC_DEPLOY:
+                    if (operation.data) {
+                        return operation.data as LogicDeployResult;
+                    }
+                    throw new Error("Failed to retrieve logic deploy response");
+                case OpType.LOGIC_INVOKE:
+                    if (operation.data) {
+                        return operation.data as LogicInvokeResult;
+                    }
+                    throw new Error("Failed to retrieve logic invoke response");
+                case OpType.LOGIC_ENLIST:
+                    if (operation.data) {
+                        return operation.data as LogicEnlistResult;
+                    }
+                    throw new Error("Failed to retrieve logic enlist response");
+                default:
+                    throw new Error("Unsupported interaction type encountered");
+            }
+        })
     }
 
     protected processWsResult(event: ProviderEvents, result: unknown): unknown {

@@ -63,9 +63,6 @@ class Signer {
      * @throws {Error} if any of the checks fail, indicating an invalid interaction.
      */
     async checkInteraction(method, ixObject) {
-        if (ixObject.type == null) {
-            js_moi_utils_1.ErrorUtils.throwError("Interaction type is missing", js_moi_utils_1.ErrorCode.MISSING_ARGUMENT);
-        }
         if (ixObject.sender == null) {
             js_moi_utils_1.ErrorUtils.throwError("Sender address is missing", js_moi_utils_1.ErrorCode.MISSING_ARGUMENT);
         }
@@ -75,13 +72,8 @@ class Signer {
         if (this.isInitialized() && ixObject.sender !== this.getAddress()) {
             js_moi_utils_1.ErrorUtils.throwError("Sender address mismatches with the signer", js_moi_utils_1.ErrorCode.UNEXPECTED_ARGUMENT);
         }
-        if (ixObject.type === js_moi_utils_1.IxType.VALUE_TRANSFER) {
-            if (!ixObject.receiver) {
-                js_moi_utils_1.ErrorUtils.throwError("Receiver address is missing", js_moi_utils_1.ErrorCode.MISSING_ARGUMENT);
-            }
-            if (!(0, js_moi_utils_1.isValidAddress)(ixObject.receiver)) {
-                js_moi_utils_1.ErrorUtils.throwError("Invalid receiver address", js_moi_utils_1.ErrorCode.INVALID_ARGUMENT);
-            }
+        if (ixObject.ix_operations == null || ixObject.ix_operations.length == 0) {
+            js_moi_utils_1.ErrorUtils.throwError("Operations list is missing", js_moi_utils_1.ErrorCode.MISSING_ARGUMENT);
         }
         if (method === "send") {
             if (ixObject.fuel_price == null) {

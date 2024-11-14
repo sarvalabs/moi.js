@@ -1,8 +1,10 @@
 export { Hex } from "../types/hex";
 export {
-    AssetCreationReceipt,
-    AssetMintOrBurnReceipt,
-    LogicDeployReceipt, LogicEnlistReceipt, LogicInvokeReceipt
+    AssetCreationResult,
+    AssetSupplyResult,
+    LogicDeployResult,
+    LogicInvokeResult,
+    LogicEnlistResult
 } from "../types/receipt";
 export * from "./address";
 export * from "./asset";
@@ -17,7 +19,6 @@ export * from "./properties";
 export * from "./schema";
 
 export { Interaction, Participant, Participants } from "../types/interaction";
-export { Receipt } from "../types/receipt";
 export { Tesseract } from "../types/tesseract";
 
 export { topicHash } from "./logic-events";

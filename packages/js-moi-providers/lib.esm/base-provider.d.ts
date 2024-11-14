@@ -1,6 +1,6 @@
 import { LogicManifest } from "js-moi-manifest";
 import { Interaction, Tesseract } from "js-moi-utils";
-import type { AccountMetaInfo, AccountState, AssetInfo, CallorEstimateIxObject, CallorEstimateOptions, Content, ContentFrom, ContextInfo, Encoding, Filter, FilterDeletionResult, Inspect, InteractionCallResponse, InteractionReceipt, InteractionRequest, InteractionResponse, Log, LogFilter, NodeInfo, Options, Registry, RpcResponse, Status, SyncStatus, TDU } from "../types/jsonrpc";
+import type { AccountMetaInfo, AccountState, AssetInfo, CallorEstimateIxObject, CallorEstimateOptions, Content, ContentFrom, ContextInfo, Encoding, Filter, FilterDeletionResult, Inspect, InteractionCallResponse, InteractionReceipt, InteractionRequest, InteractionResponse, Log, LogFilter, NodeInfo, Options, Registry, RpcResponse, Status, SyncStatus, TDU, ExecutionResult } from "../types/jsonrpc";
 import type { ProviderEvents } from "../types/websocket";
 import { AbstractProvider } from "./abstract-provider";
 export interface EventTag {
@@ -211,7 +211,7 @@ export declare class BaseProvider extends AbstractProvider {
      * @returns {Promise<Tesseract>} A promise that resolves to the Tesseract.
      * @throws {Error} if there is an error executing the RPC call.
      */
-    getTesseract(address: string, with_interactions: boolean, options?: Options): Promise<Tesseract>;
+    getTesseract(address: string, with_interactions: boolean, with_commit_info: boolean, options?: Options): Promise<Tesseract>;
     /**
       * Retrieves a Tesseract for a specified tesseract hash.
       *
@@ -221,7 +221,7 @@ export declare class BaseProvider extends AbstractProvider {
       * @returns {Promise<Tesseract>} A promise that resolves to the Tesseract.
       * @throws {Error} if there is an error executing the RPC call.
       */
-    getTesseract(with_interactions: boolean, options: Options): Promise<Tesseract>;
+    getTesseract(with_interactions: boolean, with_commit_info: boolean, options: Options): Promise<Tesseract>;
     /**
      * Retrieves the logic id's associated with a specific address.
      *
@@ -421,15 +421,15 @@ export declare class BaseProvider extends AbstractProvider {
      */
     protected waitForInteraction(interactionHash: string, timeout?: number): Promise<InteractionReceipt>;
     /**
-     * Process the interaction receipt to determine the appropriate result based on the
-     * interaction type.
+     * Process the interaction receipt to determine the appropriate execution result
+     * based on the operation type.
      *
      * @param {InteractionReceipt} receipt - The interaction receipt to be processed.
-     * @returns {any} The processed result based on the interaction type.
-     * @throws {Error} If the interaction type is unsupported or the expected response
+     * @returns {ExecutionResult[]} The processed execution results based on the operation type.
+     * @throws {Error} If the operation type is unsupported or the expected response
      * data is missing.
      */
-    protected processReceipt(receipt: InteractionReceipt): any;
+    protected processReceipt(receipt: InteractionReceipt): ExecutionResult[];
     protected processWsResult(event: ProviderEvents, result: unknown): unknown;
     /**
      * Waits for the interaction with the specified hash to be included in a

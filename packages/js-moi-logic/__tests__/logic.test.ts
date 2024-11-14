@@ -8,12 +8,12 @@ import { loadManifestFromFile } from "js-moi-manifest/__tests__/utils/helper";
 import { JsonRpcProvider, type InteractionReceipt, type InteractionResponse } from "js-moi-providers";
 import { createRoutineOption } from "../src.ts/routine-options";
 
-const HOST = "<YOUR JSON RPC HOST>";
-const MNEMONIC = "<YOUR SEED RECOVERY PHRASE>";
+const HOST = "https://api-voyage.moibit.io/babylon";
+const MNEMONIC = "chunk casual address metal napkin fortune noodle bottom muffin job antenna devote";
 const INITIAL_SUPPLY = 100000000;
 const SYMBOL = "MOI";
 const RECEIVER = "0x4cdc9a1430ca00cbaaab5dcd858236ba75e64b863d69fa799d31854e103ddf72";
-const PATH = "m/44'/6174'/7020'/0/0";
+const PATH = "m/44'/6174'/0'/0/1";
 const PROVIDER = new JsonRpcProvider(HOST);
 
 let wallet: Wallet;
@@ -41,9 +41,7 @@ describe("Logic", () => {
         const factory = new LogicFactory(manifest, wallet);
         ix = await factory.deploy("Seed", SYMBOL, INITIAL_SUPPLY);
         receipt = await ix.wait();
-        const result = await ix.result();
-
-        logicId = result.logic_id;
+        logicId = await ix.result();
     });
 
     describe("deploy logic", () => {
@@ -60,8 +58,7 @@ describe("Logic", () => {
             const ix = await factory.deploy("Seed", symbol, supply, option);
 
             const receipt = await ix.wait();
-            const result = await ix.result();
-            logicId = result.logic_id;
+            logicId = await ix.result();
 
             expect(ix.hash).toBeDefined();
             expect(receipt).toBeDefined();
@@ -115,7 +112,6 @@ describe("Logic", () => {
                 await ix.result();
             } catch (error) {
                 expect(error.message).toBe("sender has insufficient balance");
-                expect(error.params.receipt).toBeDefined();
             }
         });
 

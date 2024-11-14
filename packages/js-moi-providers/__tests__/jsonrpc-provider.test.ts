@@ -1,4 +1,4 @@
-import { AssetCreationReceipt, AssetStandard, hexToBN, IxType, toQuantity } from "js-moi-utils";
+import { AssetCreationResult, AssetStandard, hexToBN, OpType, toQuantity } from "js-moi-utils";
 import { VoyageProvider } from "../lib.cjs";
 import { JsonRpcProvider } from "../src.ts/jsonrpc-provider";
 import { Filter, InteractionReceipt } from "../types/jsonrpc";
@@ -19,14 +19,18 @@ describe("Test JsonRpcProvider Query Calls", () => {
 
     beforeAll(async() => {
       const ixResponse = await signer.sendInteraction({
-        type: IxType.ASSET_CREATE,
         fuel_price: 1,
         fuel_limit: 200,
-        payload: {
-            standard: AssetStandard.MAS0,
-            symbol: getRandomSymbol(),
-            supply: supply
-        }
+        ix_operations: [
+          {
+            type: OpType.ASSET_CREATE,
+            payload: {
+              standard: AssetStandard.MAS0,
+              symbol: getRandomSymbol(),
+              supply: supply
+            }
+          }
+        ]
       });
 
       ixHash = ixResponse.hash;
@@ -35,12 +39,12 @@ describe("Test JsonRpcProvider Query Calls", () => {
 
     describe('getBalance', () => {
       it('should return the asset balance', async () => {
-        if (!ixReceipt.extra_data) {
-          expect(ixReceipt.extra_data).toBeDefined();
+        if (!ixReceipt.ix_operations[0].data) {
+          expect(ixReceipt.ix_operations[0].data).toBeDefined();
           return;
         }
         
-        const balance = await provider.getBalance(signer.getAddress(), (<AssetCreationReceipt>ixReceipt.extra_data).asset_id);
+        const balance = await provider.getBalance(signer.getAddress(), (<AssetCreationResult>ixReceipt.ix_operations[0].data).asset_id);
         expect(balance).toBe(supply);
       })
     });
@@ -62,7 +66,7 @@ describe("Test JsonRpcProvider Query Calls", () => {
 
 
       it('should return the context info by hash', async() => {
-        const tesseract = await provider.getTesseract(address, false);
+        const tesseract = await provider.getTesseract(address, false, false);
         expect(tesseract).toBeDefined();
 
         const contextInfo = await provider.getContextInfo(address, {
@@ -78,7 +82,7 @@ describe("Test JsonRpcProvider Query Calls", () => {
         const tdu = await provider.getTDU(address);
         expect(tdu).toBeDefined();
         
-        const extraData = ixReceipt.extra_data as AssetCreationReceipt
+        const extraData = ixReceipt.ix_operations[0].data as AssetCreationResult
         const asset = tdu.find(asset => asset.asset_id === extraData.asset_id);
 
         expect(asset).toBeDefined();
@@ -110,7 +114,7 @@ describe("Test JsonRpcProvider Query Calls", () => {
       });
 
       it('should return the interaction count by hash', async() => {
-        const tesseract = await provider.getTesseract(address, false);
+        const tesseract = await provider.getTesseract(address, false, false);
         expect(tesseract).toBeDefined();
 
         const ixCount = await provider.getInteractionCount(address, {
@@ -130,7 +134,7 @@ describe("Test JsonRpcProvider Query Calls", () => {
       });
 
       it("should return the interaction by tesseract without address", async () => {
-        const tesseract = await provider.getTesseract(address, true);
+        const tesseract = await provider.getTesseract(address, true, false);
         const interaction = await provider.getInteractionByTesseract({ tesseract_hash: tesseract.hash }, 0);
 
         expect(interaction).toBeDefined();
@@ -162,7 +166,7 @@ describe("Test JsonRpcProvider Query Calls", () => {
       })
 
       it('should return the account state by hash', async() => {
-        const tesseract = await provider.getTesseract(address, false);
+        const tesseract = await provider.getTesseract(address, false, false);
         expect(tesseract).toBeDefined();
 
         const accountState = await provider.getAccountState(address, {
@@ -183,7 +187,7 @@ describe("Test JsonRpcProvider Query Calls", () => {
 
     describe('getTesseract', () => {
         it('should return the latest tesseract', async () => {
-          const tesseract = await provider.getTesseract(address, false);
+          const tesseract = await provider.getTesseract(address, false, false);
           const participant = tesseract.participants.find(p => p.address === address);
 
           if (!participant) {
@@ -197,7 +201,7 @@ describe("Test JsonRpcProvider Query Calls", () => {
         });
 
         it('should return the tesseract by height', async() => {
-          const tesseract = await provider.getTesseract(address, false, {
+          const tesseract = await provider.getTesseract(address, false, false, {
             tesseract_number: 0
           });
 
@@ -210,10 +214,10 @@ describe("Test JsonRpcProvider Query Calls", () => {
         });
 
         it('should return the tesseract by hash', async() => {
-          const tesseract = await provider.getTesseract(address, false);
+          const tesseract = await provider.getTesseract(address, false, false);
           expect(tesseract).toBeDefined();
 
-          const tesseractByHash = await provider.getTesseract(false, {
+          const tesseractByHash = await provider.getTesseract(false, false, {
             tesseract_hash: tesseract.hash
           });
 
@@ -232,16 +236,20 @@ describe("Test JsonRpcProvider Query Calls", () => {
     describe("call", () => {
       it('should return the receipt by executing the interaction', async () => {
         const receipt = await provider.call({
-          type: IxType.ASSET_CREATE,
           nonce: await signer.getNonce(),
           sender: address,
           fuel_price: 1,
           fuel_limit: 200,
-          payload: {
-              standard: AssetStandard.MAS0,
-              symbol: "CALL",
-              supply: 1248577
-          }
+          ix_operations: [
+            {
+              type: OpType.ASSET_CREATE,
+              payload: {
+                standard: AssetStandard.MAS0,
+                symbol: "CALL",
+                supply: 1248577
+              }
+            }
+          ]
         })
 
         expect(receipt).toBeDefined()
@@ -251,16 +259,20 @@ describe("Test JsonRpcProvider Query Calls", () => {
     describe("estimateFuel", () => {
       it('should return the estimated fuel by executing the interaction', async () => {
         const fuelPrice = await provider.estimateFuel({
-          type: IxType.ASSET_CREATE,
           nonce: await signer.getNonce(),
           sender: address,
           fuel_price: 1,
           fuel_limit: 200,
-          payload: {
-              standard: AssetStandard.MAS0,
-              symbol: "ESTIMATE",
-              supply: 1248577
-          }
+          ix_operations: [
+            {
+              type: OpType.ASSET_CREATE,
+              payload: {
+                standard: AssetStandard.MAS0,
+                symbol: "ESTIMATE",
+                supply: 1248577
+              }
+            }
+          ]
         })
 
         expect(fuelPrice).toBeDefined()
@@ -392,15 +404,19 @@ describe("Test JsonRpcProvider Query Calls", () => {
         const nonce = await signer.getNonce();
         const filter = await provider.getNewTesseractFilter();
         const ixResponse = await signer.sendInteraction({
-          type: IxType.ASSET_CREATE,
           nonce: nonce,
           fuel_price: 1,
           fuel_limit: 200,
-          payload: {
-              standard: AssetStandard.MAS0,
-              symbol: "TESTING",
-              supply: 1248577
-          }
+          ix_operations: [
+            {
+              type: OpType.ASSET_CREATE,
+              payload: {
+                standard: AssetStandard.MAS0,
+                symbol: "TESTING",
+                supply: 1248577
+              }
+            }
+          ]
         });
 
         await ixResponse.wait()

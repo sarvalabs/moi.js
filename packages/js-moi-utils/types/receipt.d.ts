@@ -1,33 +1,24 @@
 
-export interface AssetCreationReceipt {
+export interface AssetCreationResult {
     asset_id: string;
     address: string;
 }
 
-export interface AssetMintOrBurnReceipt {
+export interface AssetSupplyResult {
     total_supply: string;
 }
 
-export interface LogicDeployReceipt {
+export interface LogicDeployResult {
     logic_id?: string;
     error: string;
 }
 
-export interface LogicInvokeReceipt {
+export interface LogicInvokeResult {
     outputs: string;
     error: string;
 }
 
-export interface LogicEnlistReceipt {
+export interface LogicEnlistResult {
     outputs: string;
     error: string;
-}
-
-export interface Receipt {
-    ix_type: number;
-    ix_hash: string;
-    fuel_used: bigint;
-    state_hashes: Map<string, string>;
-    context_hashes: Map<string, string>;
-    extra_data: AssetCreationReceipt | AssetMintOrBurnReceipt | LogicDeployReceipt | LogicInvokeReceipt | LogicEnlistReceipt | null;
 }

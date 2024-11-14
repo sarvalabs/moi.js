@@ -1,6 +1,9 @@
 export const logicSchema = {
     kind: "struct",
     fields: {
+        manifest: {
+            kind: "bytes"
+        },
         logic_id: {
             kind: "string"
         },
@@ -10,8 +13,27 @@ export const logicSchema = {
         calldata: {
             kind: "bytes"
         },
-        manifest: {
+        interface: {
+            kind: "map",
+            fields: {
+                keys: {
+                    kind: "string"
+                },
+                values: {
+                    kind: "string"
+                }
+            }
+        }
+    }
+};
+export const participantCreateSchema = {
+    kind: "struct",
+    fields: {
+        address: {
             kind: "bytes"
+        },
+        amount: {
+            kind: "integer"
         }
     }
 };
@@ -39,15 +61,24 @@ export const assetCreateSchema = {
         logic_payload: logicSchema
     }
 };
-export const builtInLogEventSchema = {
+export const assetActionSchema = {
     kind: "struct",
     fields: {
-        value: {
+        benefactor: {
+            kind: "bytes"
+        },
+        beneficiary: {
+            kind: "bytes"
+        },
+        asset_id: {
             kind: "string"
+        },
+        amount: {
+            kind: "integer"
         }
     }
 };
-export const assetMintOrBurnSchema = {
+export const assetSupplySchema = {
     kind: "struct",
     fields: {
         asset_id: {
@@ -61,42 +92,14 @@ export const assetMintOrBurnSchema = {
 export const ixObjectSchema = {
     kind: "struct",
     fields: {
-        type: {
-            kind: "integer"
-        },
-        nonce: {
-            kind: "integer"
-        },
         sender: {
-            kind: "bytes"
-        },
-        receiver: {
             kind: "bytes"
         },
         payer: {
             kind: "bytes"
         },
-        transfer_values: {
-            kind: "map",
-            fields: {
-                keys: {
-                    kind: "string"
-                },
-                values: {
-                    kind: "integer"
-                }
-            }
-        },
-        perceived_values: {
-            kind: "map",
-            fields: {
-                keys: {
-                    kind: "string"
-                },
-                values: {
-                    kind: "integer"
-                }
-            }
+        nonce: {
+            kind: "integer"
         },
         fuel_price: {
             kind: "integer"
@@ -104,8 +107,75 @@ export const ixObjectSchema = {
         fuel_limit: {
             kind: "integer"
         },
-        payload: {
+        funds: {
+            kind: "array",
+            fields: {
+                values: {
+                    kind: "struct",
+                    fields: {
+                        asset_id: {
+                            kind: "string"
+                        },
+                        amount: {
+                            kind: "integer"
+                        }
+                    }
+                }
+            }
+        },
+        ix_operations: {
+            kind: "array",
+            fields: {
+                values: {
+                    kind: "struct",
+                    fields: {
+                        type: {
+                            kind: "integer"
+                        },
+                        payload: {
+                            kind: "bytes"
+                        }
+                    }
+                }
+            }
+        },
+        participants: {
+            kind: "array",
+            fields: {
+                values: {
+                    kind: "struct",
+                    fields: {
+                        address: {
+                            kind: "bytes"
+                        },
+                        lock_type: {
+                            kind: "integer"
+                        }
+                    }
+                }
+            }
+        },
+        perception: {
             kind: "bytes"
+        },
+        preferences: {
+            kind: "struct",
+            fields: {
+                compute: {
+                    kind: "bytes"
+                },
+                consensus: {
+                    kind: "bytes"
+                }
+            }
+        }
+    }
+};
+export const builtInLogEventSchema = {
+    kind: "struct",
+    fields: {
+        value: {
+            kind: "string"
         }
     }
 };

@@ -25,7 +25,7 @@ export declare class LogicDriver<T extends Record<string, (...args: any) => any>
     /**
      * Checks if a routine is mutable based on its name.
      *
-     * @param {string} routineName - The name of the routine.
+     * @param {string} routine - The name of the routine.
      * @returns {boolean} True if the routine is mutable, false otherwise.
      */
     private isMutableRoutine;
@@ -45,7 +45,7 @@ export declare class LogicDriver<T extends Record<string, (...args: any) => any>
      * @returns {Promise<LogicIxResult | null>} A promise that resolves to the
      logic interaction result or null.
      */
-    protected processResult(response: LogicIxResponse, timeout?: number): Promise<unknown | null>;
+    protected processResult(response: LogicIxResponse, timeout?: number): Promise<unknown>;
 }
 /**
  * Returns a logic driver instance based on the given logic id.

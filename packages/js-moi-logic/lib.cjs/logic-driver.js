@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getLogicDriver = exports.LogicDriver = void 0;
+const js_moi_manifest_1 = require("js-moi-manifest");
 const js_moi_utils_1 = require("js-moi-utils");
 const logic_descriptor_1 = require("./logic-descriptor");
 const routine_options_1 = require("./routine-options");
@@ -74,7 +75,7 @@ class LogicDriver extends logic_descriptor_1.LogicDescriptor {
     /**
      * Checks if a routine is mutable based on its name.
      *
-     * @param {string} routineName - The name of the routine.
+     * @param {string} routine - The name of the routine.
      * @returns {boolean} True if the routine is mutable, false otherwise.
      */
     isMutableRoutine(routine) {
@@ -93,8 +94,7 @@ class LogicDriver extends logic_descriptor_1.LogicDescriptor {
         };
         if (ixObject.routine.accepts &&
             Object.keys(ixObject.routine.accepts).length > 0) {
-            const calldata = this.manifestCoder.encodeArguments(ixObject.routine.name, ...ixObject.arguments);
-            payload.calldata = (0, js_moi_utils_1.hexToBytes)(calldata);
+            payload.calldata = this.manifestCoder.encodeArguments(ixObject.routine.name, ...ixObject.arguments);
         }
         return payload;
     }
@@ -110,7 +110,11 @@ class LogicDriver extends logic_descriptor_1.LogicDescriptor {
     async processResult(response, timeout) {
         try {
             const result = await response.result(timeout);
-            return this.manifestCoder.decodeOutput(response.routine_name, result.outputs);
+            const error = js_moi_manifest_1.ManifestCoder.decodeException(result[0].error);
+            if (error != null) {
+                js_moi_utils_1.ErrorUtils.throwError(error.error, js_moi_utils_1.ErrorCode.CALL_EXCEPTION, { cause: error });
+            }
+            return this.manifestCoder.decodeOutput(response.routine_name, result[0].outputs);
         }
         catch (err) {
             throw err;

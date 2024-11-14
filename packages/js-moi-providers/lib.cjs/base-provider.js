@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BaseProvider = void 0;
-const js_moi_manifest_1 = require("js-moi-manifest");
 const js_moi_utils_1 = require("js-moi-utils");
 const abstract_provider_1 = require("./abstract-provider");
 const interaction_1 = require("./interaction");
@@ -445,24 +444,26 @@ class BaseProvider extends abstract_provider_1.AbstractProvider {
       * @throws {Error} if there is an error executing the RPC call.
       *
       * @example
-      * // Retrieve Tesseract by address with interactions and options
-      * provider.getTesseract('0x55425876a7bdad21068d629e290b22b564c4f596fdf008db47c037da0cb146db', true, { tesseract_number: '0' })
+      * // Retrieve Tesseract by address with interactions, commit_info and options
+      * provider.getTesseract('0x55425876a7bdad21068d629e290b22b564c4f596fdf008db47c037da0cb146db', true, true, { tesseract_number: '0' })
       *
       * @example
-      * // Retrieve Tesseract by tesseract hash with interactions and options
-      * provider.getTesseract(true, { tesseract_hash: '0xf1e6274efa43da9fecbb7e970be4b37e6f8f4e66eea7e323a671f02ef7a5e001' })
+      * // Retrieve Tesseract by tesseract hash with interactions, commit_info and options
+      * provider.getTesseract(true, true, { tesseract_hash: '0xf1e6274efa43da9fecbb7e970be4b37e6f8f4e66eea7e323a671f02ef7a5e001' })
       */
-    async getTesseract(arg1, arg2, arg3) {
+    async getTesseract(arg1, arg2, arg3, arg4) {
         try {
             const params = {};
             if (typeof arg1 === 'string') {
                 params['address'] = arg1;
                 params['with_interactions'] = arg2;
-                params['options'] = arg3 ?? defaultOptions;
+                params['with_commit_info'] = arg3;
+                params['options'] = arg4 ?? defaultOptions;
             }
             if (typeof arg1 === 'boolean') {
                 params['with_interactions'] = arg1;
-                params['options'] = arg2 ?? defaultOptions;
+                params['with_commit_info'] = arg2;
+                params['options'] = arg3 ?? defaultOptions;
             }
             const response = await this.execute("moi.Tesseract", params);
             return this.processResponse(response);
@@ -555,7 +556,7 @@ class BaseProvider extends abstract_provider_1.AbstractProvider {
             // call receipt bug is resolved in the protocol.
             return {
                 receipt: receipt,
-                result: this.processReceipt.bind(this, { ...receipt, ix_type: (0, js_moi_utils_1.toQuantity)(ixObject.type) })
+                result: this.processReceipt.bind(this, receipt)
             };
         }
         catch (error) {
@@ -975,21 +976,7 @@ class BaseProvider extends abstract_provider_1.AbstractProvider {
                     return;
                 }
                 clearTimers();
-                const result = this.processReceipt(receipt);
-                if (result == null) {
-                    resolve(receipt);
-                    return;
-                }
-                const error = js_moi_manifest_1.ManifestCoder.decodeException(result.error);
-                if (error == null) {
-                    resolve(receipt);
-                    return;
-                }
-                const err = new js_moi_utils_1.CustomError(error.error, js_moi_utils_1.ErrorCode.ACTION_REJECTED, {
-                    ...error,
-                    receipt,
-                });
-                reject(err);
+                resolve(receipt);
             };
             await checkReceipt();
             intervalId = setInterval(checkReceipt, 5000);
@@ -1000,47 +987,50 @@ class BaseProvider extends abstract_provider_1.AbstractProvider {
         });
     }
     /**
-     * Process the interaction receipt to determine the appropriate result based on the
-     * interaction type.
+     * Process the interaction receipt to determine the appropriate execution result
+     * based on the operation type.
      *
      * @param {InteractionReceipt} receipt - The interaction receipt to be processed.
-     * @returns {any} The processed result based on the interaction type.
-     * @throws {Error} If the interaction type is unsupported or the expected response
+     * @returns {ExecutionResult[]} The processed execution results based on the operation type.
+     * @throws {Error} If the operation type is unsupported or the expected response
      * data is missing.
      */
     processReceipt(receipt) {
-        switch ((0, js_moi_utils_1.hexToBN)(receipt.ix_type)) {
-            case js_moi_utils_1.IxType.VALUE_TRANSFER:
-                return null;
-            case js_moi_utils_1.IxType.ASSET_CREATE:
-                if (receipt.extra_data) {
-                    return receipt.extra_data;
-                }
-                throw new Error("Failed to retrieve asset creation response");
-            case js_moi_utils_1.IxType.ASSET_MINT:
-            case js_moi_utils_1.IxType.ASSET_BURN:
-                if (receipt.extra_data) {
-                    return receipt.extra_data;
-                }
-                throw new Error("Failed to retrieve asset mint/burn response");
-            case js_moi_utils_1.IxType.LOGIC_DEPLOY:
-                if (receipt.extra_data) {
-                    return receipt.extra_data;
-                }
-                throw new Error("Failed to retrieve logic deploy response");
-            case js_moi_utils_1.IxType.LOGIC_INVOKE:
-                if (receipt.extra_data) {
-                    return receipt.extra_data;
-                }
-                throw new Error("Failed to retrieve logic invoke response");
-            case js_moi_utils_1.IxType.LOGIC_ENLIST:
-                if (receipt.extra_data) {
-                    return receipt.extra_data;
-                }
-                throw new Error("Failed to retrieve logic enlist response");
-            default:
-                throw new Error("Unsupported interaction type encountered");
-        }
+        return receipt.ix_operations.map(operation => {
+            switch ((0, js_moi_utils_1.hexToBN)(operation.tx_type)) {
+                case js_moi_utils_1.OpType.PARTICIPANT_CREATE:
+                case js_moi_utils_1.OpType.ASSET_TRANSFER:
+                    return null;
+                case js_moi_utils_1.OpType.ASSET_CREATE:
+                    if (operation.data) {
+                        return operation.data;
+                    }
+                    throw new Error("Failed to retrieve asset creation response");
+                case js_moi_utils_1.OpType.ASSET_MINT:
+                case js_moi_utils_1.OpType.ASSET_BURN:
+                    if (operation.data) {
+                        return operation.data;
+                    }
+                    throw new Error("Failed to retrieve asset mint/burn response");
+                case js_moi_utils_1.OpType.LOGIC_DEPLOY:
+                    if (operation.data) {
+                        return operation.data;
+                    }
+                    throw new Error("Failed to retrieve logic deploy response");
+                case js_moi_utils_1.OpType.LOGIC_INVOKE:
+                    if (operation.data) {
+                        return operation.data;
+                    }
+                    throw new Error("Failed to retrieve logic invoke response");
+                case js_moi_utils_1.OpType.LOGIC_ENLIST:
+                    if (operation.data) {
+                        return operation.data;
+                    }
+                    throw new Error("Failed to retrieve logic enlist response");
+                default:
+                    throw new Error("Unsupported interaction type encountered");
+            }
+        });
     }
     processWsResult(event, result) {
         if (event === 'newPendingInteractions') {

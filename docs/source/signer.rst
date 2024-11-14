@@ -80,16 +80,20 @@ Regular Methods
 
 .. code-block:: javascript
 
-    // Example
+    // Example 1
     const response = await signer.sendInteraction({
-        type: IxType.ASSET_CREATE,
         fuel_price: 1,
         fuel_limit: 200,
-        payload: {
-            standard: AssetStandard.MAS0,
-            symbol: "TOKYO",
-            supply: 1248577
-        }
+        ix_operations: [
+            {
+                type: OpType.ASSET_CREATE,
+                payload: {
+                    standard: AssetStandard.MAS0,
+                    symbol: "TOKYO",
+                    supply: 1248577
+                }
+            }
+        ]
     })
 
     console.log(response)
@@ -98,6 +102,40 @@ Regular Methods
     /*
         {
             hash: '0x3492b59462fc7b8b9ec83296c6e04f314d0c93beb1cb2bfd267874b8e17c702c',
+            wait: [Function: bound waitForInteraction] AsyncFunction,
+            result: [Function: bound processResult] AsyncFunction
+        }
+    */
+
+    // Example 2
+    const response = await signer.sendInteraction({
+        fuel_price: 1,
+        fuel_limit: 200,
+        ix_operations: [
+            {
+                type: OpType.ASSET_CREATE,
+                payload: {
+                    standard: AssetStandard.MAS0,
+                    symbol: "NOVA",
+                    supply: 1248577
+                }
+            },
+            {
+                type: OpType.ASSET_MINT,
+                payload: {
+                    asset_id: "0x00000000b9a9d618867bec092db71c06c368a6d7f78dc01cf36f86a35991fee11303c3d9",
+                    amount: 50000
+                }
+            },
+        ]
+    })
+
+    console.log(response)
+
+    // Output
+    /*
+        {
+            hash: '0xcade1ded604767e847a4a116b014a09c01347742de330869cf108d5f1fe2733a',
             wait: [Function: bound waitForInteraction] AsyncFunction,
             result: [Function: bound processResult] AsyncFunction
         }

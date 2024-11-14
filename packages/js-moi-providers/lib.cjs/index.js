@@ -19,6 +19,7 @@ __exportStar(require("./abstract-provider"), exports);
 __exportStar(require("./base-provider"), exports);
 __exportStar(require("./jsonrpc-provider"), exports);
 __exportStar(require("./voyage-provider"), exports);
+__exportStar(require("./interaction"), exports);
 var websocket_events_1 = require("./websocket-events");
 Object.defineProperty(exports, "WebSocketEvent", { enumerable: true, get: function () { return websocket_events_1.WebSocketEvent; } });
 var websocket_provider_1 = require("./websocket-provider");

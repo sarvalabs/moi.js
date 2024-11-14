@@ -35,16 +35,16 @@ class LogicBase extends js_moi_manifest_1.ElementDescriptor {
     /**
      * Returns the interaction type based on the routine kind.
      *
-     * @returns {IxType} The interaction type.
+     * @returns {OpType} The interaction type.
      */
-    getIxType(kind) {
+    getTxType(kind) {
         switch (kind) {
             case "deploy":
-                return js_moi_utils_1.IxType.LOGIC_DEPLOY;
+                return js_moi_utils_1.OpType.LOGIC_DEPLOY;
             case "invoke":
-                return js_moi_utils_1.IxType.LOGIC_INVOKE;
+                return js_moi_utils_1.OpType.LOGIC_INVOKE;
             case "enlist":
-                return js_moi_utils_1.IxType.LOGIC_ENLIST;
+                return js_moi_utils_1.OpType.LOGIC_ENLIST;
             default:
                 throw new Error("Unsupported routine kind!");
         }
@@ -74,8 +74,8 @@ class LogicBase extends js_moi_manifest_1.ElementDescriptor {
      * or if the sendInteraction operation fails.
      */
     async executeRoutine(ixObject, method, option) {
-        if (this.getIxType(ixObject.routine.kind) !== js_moi_utils_1.IxType.LOGIC_DEPLOY && !this.getLogicId()) {
-            js_moi_utils_1.ErrorUtils.throwError("This logic object doesn't have address set yet, please set an address first.", js_moi_utils_1.ErrorCode.NOT_INITIALIZED);
+        if (this.getTxType(ixObject.routine.kind) !== js_moi_utils_1.OpType.LOGIC_DEPLOY && !this.getLogicId()) {
+            js_moi_utils_1.ErrorUtils.throwError("This logic object doesn't have logic id assigned yet, please assign an logic id.", js_moi_utils_1.ErrorCode.NOT_INITIALIZED);
         }
         const { type, params } = this.processArguments(ixObject, method, option);
         switch (type) {
@@ -123,8 +123,12 @@ class LogicBase extends js_moi_manifest_1.ElementDescriptor {
      */
     processArguments(ixObject, type, option) {
         const params = {
-            type: this.getIxType(ixObject.routine.kind),
-            payload: ixObject.createPayload(),
+            ix_operations: [
+                {
+                    type: this.getTxType(ixObject.routine.kind),
+                    payload: ixObject.createPayload(),
+                }
+            ]
         };
         params.sender = option.sender ?? this.signer?.getAddress();
         params.fuel_price = option.fuelPrice;
@@ -141,10 +145,6 @@ class LogicBase extends js_moi_manifest_1.ElementDescriptor {
     createIxRequest(ixObject) {
         const unwrap = async () => {
             const ix = await ixObject.call();
-            const error = "error" in ix.receipt.extra_data ? js_moi_manifest_1.ManifestCoder.decodeException(ix.receipt.extra_data.error) : null;
-            if (error != null) {
-                js_moi_utils_1.ErrorUtils.throwError(error.error, js_moi_utils_1.ErrorCode.CALL_EXCEPTION, { cause: error });
-            }
             return await ix.result();
         };
         return {

@@ -1,4 +1,5 @@
-import { ErrorCode, ErrorUtils, defineReadOnly, hexToBytes } from "js-moi-utils";
+import { ManifestCoder } from "js-moi-manifest";
+import { ErrorCode, ErrorUtils, defineReadOnly } from "js-moi-utils";
 import { LogicDescriptor } from "./logic-descriptor";
 import { RoutineOption } from "./routine-options";
 import { EphemeralState, PersistentState } from "./state";
@@ -71,7 +72,7 @@ export class LogicDriver extends LogicDescriptor {
     /**
      * Checks if a routine is mutable based on its name.
      *
-     * @param {string} routineName - The name of the routine.
+     * @param {string} routine - The name of the routine.
      * @returns {boolean} True if the routine is mutable, false otherwise.
      */
     isMutableRoutine(routine) {
@@ -90,8 +91,7 @@ export class LogicDriver extends LogicDescriptor {
         };
         if (ixObject.routine.accepts &&
             Object.keys(ixObject.routine.accepts).length > 0) {
-            const calldata = this.manifestCoder.encodeArguments(ixObject.routine.name, ...ixObject.arguments);
-            payload.calldata = hexToBytes(calldata);
+            payload.calldata = this.manifestCoder.encodeArguments(ixObject.routine.name, ...ixObject.arguments);
         }
         return payload;
     }
@@ -107,7 +107,11 @@ export class LogicDriver extends LogicDescriptor {
     async processResult(response, timeout) {
         try {
             const result = await response.result(timeout);
-            return this.manifestCoder.decodeOutput(response.routine_name, result.outputs);
+            const error = ManifestCoder.decodeException(result[0].error);
+            if (error != null) {
+                ErrorUtils.throwError(error.error, ErrorCode.CALL_EXCEPTION, { cause: error });
+            }
+            return this.manifestCoder.decodeOutput(response.routine_name, result[0].outputs);
         }
         catch (err) {
             throw err;

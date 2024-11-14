@@ -24,12 +24,11 @@ class LogicFactory extends logic_base_1.LogicBase {
      */
     createPayload(ixObject) {
         const payload = {
-            manifest: (0, js_moi_utils_1.hexToBytes)(this.encodedManifest),
+            manifest: this.encodedManifest,
             callsite: ixObject.routine.name
         };
         if (ixObject.routine.accepts && Object.keys(ixObject.routine.accepts).length > 0) {
-            const calldata = this.manifestCoder.encodeArguments(payload.callsite, ...ixObject.arguments);
-            payload.calldata = (0, js_moi_utils_1.hexToBytes)(calldata);
+            payload.calldata = this.manifestCoder.encodeArguments(payload.callsite, ...ixObject.arguments);
         }
         return payload;
     }
@@ -38,15 +37,16 @@ class LogicFactory extends logic_base_1.LogicBase {
      *
      * @param {LogicIxResponse} response - The logic interaction response.
      * @param {number} timeout - The custom timeout for processing the result. (optional)
-     * @returns {Promise<LogicIxResult>} The processed logic interaction result.
+     * @returns {Promise<string>} The processed logic interaction result.
      */
     async processResult(response, timeout) {
         try {
             const result = await response.result(timeout);
-            return {
-                logic_id: result.logic_id ? result.logic_id : "",
-                error: js_moi_manifest_1.ManifestCoder.decodeException(result.error)
-            };
+            const error = js_moi_manifest_1.ManifestCoder.decodeException(result[0].error);
+            if (error != null) {
+                js_moi_utils_1.ErrorUtils.throwError(error.error, js_moi_utils_1.ErrorCode.CALL_EXCEPTION, { cause: error });
+            }
+            return result[0].logic_id ? result[0].logic_id : "";
         }
         catch (err) {
             throw err;

@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import { VoyageProvider, type InteractionRequest } from "js-moi-providers";
-import { AssetStandard, isValidAddress } from "js-moi-utils";
+import { AssetStandard, isValidAddress, OpType } from "js-moi-utils";
 import { CURVE, Wallet } from "../src.ts/index";
 
 const MNEMONIC = "profit behave tribe dash diet stool crawl general country student smooth oxygen";
@@ -148,16 +148,20 @@ describe("Wallet", () => {
 
         test("signInteraction", () => {
             const ixObject = {
-                type: 3,
                 nonce: 0,
                 sender: wallet.address,
                 fuel_price: 1,
                 fuel_limit: 200,
-                payload: {
-                    standard: AssetStandard.MAS0,
-                    symbol: "SIG",
-                    supply: 1248577,
-                },
+                ix_operations: [
+                    {
+                        type: OpType.ASSET_CREATE,
+                        payload: {
+                            standard: AssetStandard.MAS0,
+                            symbol: "SIG",
+                            supply: 1248577,
+                        },
+                    }
+                ]
             };
 
             const algo = wallet.signingAlgorithms["ecdsa_secp256k1"];
@@ -169,7 +173,7 @@ describe("Wallet", () => {
                 signature: expect.any(String),
             });
             expect(ixArgs.ix_args).toEqual(
-                "0e9f0203131696049608900c900c930ca30cb60c03870ad6c5150ea8c0355316974873313004c6b9425a855a06fff16f408b0e0a8b0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c80e7f06336363616160534947130d41"
+                "0ebf02068604830883089308ae08be088e0be00fe00f870ad6c5150ea8c0355316974873313004c6b9425a855a06fff16f408b0e0a8b000000000000000000000000000000000000000000000000000000000000000001c80f1f0e2f0316040e7f06336363616160534947130d411f0e3f068304870ad6c5150ea8c0355316974873313004c6b9425a855a06fff16f408b0e0a8b"
             );
         });
 

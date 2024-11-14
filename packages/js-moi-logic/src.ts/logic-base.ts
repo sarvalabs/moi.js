@@ -2,7 +2,7 @@ import { ElementDescriptor, LogicManifest, ManifestCoder } from "js-moi-manifest
 import type { AbstractProvider } from "js-moi-providers";
 import { CallorEstimateIxObject, InteractionCallResponse, InteractionObject, InteractionResponse, LogicPayload } from "js-moi-providers";
 import { Signer } from "js-moi-signer";
-import { ErrorCode, ErrorUtils, IxType } from "js-moi-utils";
+import { ErrorCode, ErrorUtils, OpType } from "js-moi-utils";
 import { LogicIxArguments, LogicIxObject, LogicIxResponse } from "../types/interaction";
 import { LogicIxRequest } from "../types/logic";
 import { LogicId } from "./logic-id";
@@ -49,16 +49,16 @@ export abstract class LogicBase extends ElementDescriptor {
     /**
      * Returns the interaction type based on the routine kind.
      * 
-     * @returns {IxType} The interaction type.
+     * @returns {OpType} The interaction type.
      */
-    protected getIxType(kind: string): IxType {
+    protected getTxType(kind: string): OpType {
         switch(kind){
             case "deploy":
-                return IxType.LOGIC_DEPLOY;
+                return OpType.LOGIC_DEPLOY;
             case "invoke":
-                return IxType.LOGIC_INVOKE;
+                return OpType.LOGIC_INVOKE;
             case "enlist":
-                return IxType.LOGIC_ENLIST;
+                return OpType.LOGIC_ENLIST;
             default:
                 throw new Error("Unsupported routine kind!");
         }
@@ -91,9 +91,9 @@ export abstract class LogicBase extends ElementDescriptor {
      * or if the sendInteraction operation fails.
      */
     protected async executeRoutine(ixObject: LogicIxObject, method: string, option: RoutineOption): Promise<InteractionCallResponse | number | bigint | InteractionResponse> {
-        if (this.getIxType(ixObject.routine.kind) !== IxType.LOGIC_DEPLOY && !this.getLogicId()) {
+        if (this.getTxType(ixObject.routine.kind) !== OpType.LOGIC_DEPLOY && !this.getLogicId()) {
             ErrorUtils.throwError(
-                "This logic object doesn't have address set yet, please set an address first.",
+                "This logic object doesn't have logic id assigned yet, please assign an logic id.",
                 ErrorCode.NOT_INITIALIZED
             );
         }
@@ -156,8 +156,12 @@ export abstract class LogicBase extends ElementDescriptor {
      */
     protected processArguments(ixObject: LogicIxObject, type: string, option: RoutineOption): LogicIxArguments {
         const params: InteractionObject = {
-            type: this.getIxType(ixObject.routine.kind),
-            payload: ixObject.createPayload(),
+            ix_operations: [
+                {
+                    type: this.getTxType(ixObject.routine.kind),
+                    payload: ixObject.createPayload(),
+                }
+            ]
         }
 
         params.sender = option.sender ?? this.signer?.getAddress();
@@ -177,13 +181,6 @@ export abstract class LogicBase extends ElementDescriptor {
     protected createIxRequest(ixObject: LogicIxObject): LogicIxRequest {
         const unwrap = async () => {
             const ix = await ixObject.call();
-            const error =
-                "error" in ix.receipt.extra_data ? ManifestCoder.decodeException(ix.receipt.extra_data.error) : null;
-
-
-            if (error != null) {
-                ErrorUtils.throwError(error.error, ErrorCode.CALL_EXCEPTION, { cause: error });
-            }
 
             return await ix.result();
         }

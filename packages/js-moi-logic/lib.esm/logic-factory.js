@@ -1,5 +1,5 @@
 import { ManifestCoder } from "js-moi-manifest";
-import { ErrorCode, ErrorUtils, hexToBytes } from "js-moi-utils";
+import { ErrorCode, ErrorUtils } from "js-moi-utils";
 import { LogicBase } from "./logic-base";
 import { RoutineOption } from "./routine-options";
 /**
@@ -21,12 +21,11 @@ export class LogicFactory extends LogicBase {
      */
     createPayload(ixObject) {
         const payload = {
-            manifest: hexToBytes(this.encodedManifest),
+            manifest: this.encodedManifest,
             callsite: ixObject.routine.name
         };
         if (ixObject.routine.accepts && Object.keys(ixObject.routine.accepts).length > 0) {
-            const calldata = this.manifestCoder.encodeArguments(payload.callsite, ...ixObject.arguments);
-            payload.calldata = hexToBytes(calldata);
+            payload.calldata = this.manifestCoder.encodeArguments(payload.callsite, ...ixObject.arguments);
         }
         return payload;
     }
@@ -35,15 +34,16 @@ export class LogicFactory extends LogicBase {
      *
      * @param {LogicIxResponse} response - The logic interaction response.
      * @param {number} timeout - The custom timeout for processing the result. (optional)
-     * @returns {Promise<LogicIxResult>} The processed logic interaction result.
+     * @returns {Promise<string>} The processed logic interaction result.
      */
     async processResult(response, timeout) {
         try {
             const result = await response.result(timeout);
-            return {
-                logic_id: result.logic_id ? result.logic_id : "",
-                error: ManifestCoder.decodeException(result.error)
-            };
+            const error = ManifestCoder.decodeException(result[0].error);
+            if (error != null) {
+                ErrorUtils.throwError(error.error, ErrorCode.CALL_EXCEPTION, { cause: error });
+            }
+            return result[0].logic_id ? result[0].logic_id : "";
         }
         catch (err) {
             throw err;
