@@ -76,6 +76,10 @@ describe("isHex", () => {
   test("should return false for an invalid hexadecimal string", () => {
     expect(isHex("12345G")).toBe(false);
   });
+
+  test("should return false for a non-string value", () => {
+    expect(isHex(123)).toBe(false);
+  });
 });
 
 describe("trimHexPrefix", () => {
@@ -85,5 +89,10 @@ describe("trimHexPrefix", () => {
 
   test("should not remove the '0x' prefix from a non-hexadecimal string", () => {
     expect(trimHexPrefix("0x12345G")).toBe("0x12345G");
+  });
+
+  test("should thtow an error for a non-string value", () => {
+    // @ts-expect-error: `trimHexPrefix` expects a string but to test the error we pass a number
+    expect(() => trimHexPrefix(123)).toThrow("Input must be a string");
   });
 });

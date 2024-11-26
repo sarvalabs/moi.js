@@ -1,5 +1,6 @@
 import BN from "bn.js";
 import { Buffer } from "buffer";
+import { ErrorUtils } from "./errors";
 /**
  * Converts a number, bigint, or BN instance to a hexadecimal string representation.
  * If the input value is not already a BN instance, it is converted to one.
@@ -99,11 +100,11 @@ export const bytesToHex = (data) => {
 /**
  * Checks if a given string is a valid hexadecimal value.
  *
- * @param {string} data - The input string.
+ * @param {string} value - The input string.
  * @returns {boolean} True if the input is a valid hexadecimal string, false otherwise.
  */
-export const isHex = (data) => {
-    return /^(0x)?[0-9A-Fa-f]+$/g.test(data);
+export const isHex = (value) => {
+    return typeof value === "string" && /^(0x)?[0-9A-Fa-f]+$/g.test(value);
 };
 /**
  * Removes the '0x' prefix from a hexadecimal string if present.
@@ -112,6 +113,9 @@ export const isHex = (data) => {
  * @returns {string} The trimmed hexadecimal string.
  */
 export const trimHexPrefix = (data) => {
+    if (typeof data !== 'string') {
+        ErrorUtils.throwArgumentError("Input must be a string", "data", data);
+    }
     if (isHex(data) && data.startsWith('0x')) {
         data = data.slice(2);
     }

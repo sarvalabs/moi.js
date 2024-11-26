@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.trimHexPrefix = exports.isHex = exports.bytesToHex = exports.hexToBN = exports.hexToBytes = exports.encodeToString = exports.toQuantity = exports.numToHex = void 0;
 const bn_js_1 = __importDefault(require("bn.js"));
 const buffer_1 = require("buffer");
+const errors_1 = require("./errors");
 /**
  * Converts a number, bigint, or BN instance to a hexadecimal string representation.
  * If the input value is not already a BN instance, it is converted to one.
@@ -111,11 +112,11 @@ exports.bytesToHex = bytesToHex;
 /**
  * Checks if a given string is a valid hexadecimal value.
  *
- * @param {string} data - The input string.
+ * @param {string} value - The input string.
  * @returns {boolean} True if the input is a valid hexadecimal string, false otherwise.
  */
-const isHex = (data) => {
-    return /^(0x)?[0-9A-Fa-f]+$/g.test(data);
+const isHex = (value) => {
+    return typeof value === "string" && /^(0x)?[0-9A-Fa-f]+$/g.test(value);
 };
 exports.isHex = isHex;
 /**
@@ -125,6 +126,9 @@ exports.isHex = isHex;
  * @returns {string} The trimmed hexadecimal string.
  */
 const trimHexPrefix = (data) => {
+    if (typeof data !== 'string') {
+        errors_1.ErrorUtils.throwArgumentError("Input must be a string", "data", data);
+    }
     if ((0, exports.isHex)(data) && data.startsWith('0x')) {
         data = data.slice(2);
     }

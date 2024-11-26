@@ -1,5 +1,7 @@
 import BN from "bn.js";
 import { Buffer } from "buffer";
+import type { Hex } from "../types/hex";
+import { ErrorUtils } from "./errors";
 
 export type NumberLike = string | number | bigint | BN | Buffer | Uint8Array | number[];
 
@@ -116,11 +118,11 @@ export const bytesToHex = (data: Uint8Array): string => {
 /**
  * Checks if a given string is a valid hexadecimal value.
  *
- * @param {string} data - The input string.
+ * @param {string} value - The input string.
  * @returns {boolean} True if the input is a valid hexadecimal string, false otherwise.
  */
-export const isHex = (data: string): boolean => {
-  return /^(0x)?[0-9A-Fa-f]+$/g.test(data);
+export const isHex = (value: unknown): value is Hex => {
+  return typeof value === "string" && /^(0x)?[0-9A-Fa-f]+$/g.test(value);
 };
 
 /**
@@ -130,6 +132,10 @@ export const isHex = (data: string): boolean => {
  * @returns {string} The trimmed hexadecimal string.
  */
 export const trimHexPrefix = (data: string): string => {
+  if (typeof data !== 'string') {
+    ErrorUtils.throwArgumentError("Input must be a string", "data", data);
+  }
+
   if (isHex(data) && data.startsWith('0x')) {
     data = data.slice(2);
   }

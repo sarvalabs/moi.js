@@ -1,5 +1,6 @@
 import BN from "bn.js";
 import { Buffer } from "buffer";
+import type { Hex } from "../types/hex";
 export type NumberLike = string | number | bigint | BN | Buffer | Uint8Array | number[];
 /**
  * Converts a number, bigint, or BN instance to a hexadecimal string representation.
@@ -54,10 +55,10 @@ export declare const bytesToHex: (data: Uint8Array) => string;
 /**
  * Checks if a given string is a valid hexadecimal value.
  *
- * @param {string} data - The input string.
+ * @param {string} value - The input string.
  * @returns {boolean} True if the input is a valid hexadecimal string, false otherwise.
  */
-export declare const isHex: (data: string) => boolean;
+export declare const isHex: (value: unknown) => value is Hex;
 /**
  * Removes the '0x' prefix from a hexadecimal string if present.
  *
