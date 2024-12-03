@@ -17,7 +17,7 @@ export class LogicFactory extends LogicBase {
      * Creates the payload for the logic interaction object.
      *
      * @param {LogicIxObject} ixObject - The logic interaction object.
-     * @returns {LogicPayload} The logic payload.
+     * @returns {LogicDeployPayload} The logic deploy payload.
      */
     createPayload(ixObject) {
         const payload = {

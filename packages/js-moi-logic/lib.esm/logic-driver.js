@@ -82,7 +82,7 @@ export class LogicDriver extends LogicDescriptor {
      * Creates the logic payload from the given interaction object.
      *
      * @param {LogicIxObject} ixObject - The interaction object.
-     * @returns {LogicPayload} The logic payload.
+     * @returns {LogicActionPayload} The logic action payload.
      */
     createPayload(ixObject) {
         const payload = {

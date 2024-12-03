@@ -120,17 +120,35 @@ export class LogicBase extends ElementDescriptor {
      */
     processArguments(ixObject, type, option) {
         const params = {
-            ix_operations: [
-                {
-                    type: this.getTxType(ixObject.routine.kind),
-                    payload: ixObject.createPayload(),
-                }
-            ]
+            sender: option.sender ?? this.signer?.getAddress(),
+            fuel_price: option.fuelPrice,
+            fuel_limit: option.fuelLimit,
+            nonce: option.nonce,
+            ix_operations: []
         };
-        params.sender = option.sender ?? this.signer?.getAddress();
-        params.fuel_price = option.fuelPrice;
-        params.fuel_limit = option.fuelLimit;
-        params.nonce = option.nonce;
+        const opType = this.getTxType(ixObject.routine.kind);
+        const payload = ixObject.createPayload();
+        switch (opType) {
+            case OpType.LOGIC_DEPLOY:
+                params.ix_operations = [
+                    {
+                        type: OpType.LOGIC_DEPLOY,
+                        payload: payload,
+                    },
+                ];
+                break;
+            case OpType.LOGIC_INVOKE:
+            case OpType.LOGIC_ENLIST:
+                params.ix_operations = [
+                    {
+                        type: opType,
+                        payload: payload,
+                    },
+                ];
+                break;
+            default:
+                ErrorUtils.throwError(`Unsupported operation type: ${opType}`, ErrorCode.UNSUPPORTED_OPERATION);
+        }
         return { type, params };
     }
     /**

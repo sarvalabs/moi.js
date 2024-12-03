@@ -1,6 +1,6 @@
 import { ElementDescriptor, LogicManifest, ManifestCoder } from "js-moi-manifest";
-import type { AbstractProvider } from "js-moi-providers";
-import { CallorEstimateIxObject, InteractionCallResponse, InteractionObject, InteractionResponse, LogicPayload } from "js-moi-providers";
+import type { AbstractProvider, LogicActionPayload, LogicDeployPayload } from "js-moi-providers";
+import { CallorEstimateIxObject, InteractionCallResponse, InteractionObject, InteractionResponse } from "js-moi-providers";
 import { Signer } from "js-moi-signer";
 import { ErrorCode, ErrorUtils, OpType } from "js-moi-utils";
 import { LogicIxArguments, LogicIxObject, LogicIxResponse } from "../types/interaction";
@@ -32,7 +32,7 @@ export abstract class LogicBase extends ElementDescriptor {
 
     // abstract methods to be implemented by subclasses
 
-    protected abstract createPayload(ixObject: LogicIxObject): LogicPayload;
+    protected abstract createPayload(ixObject: LogicIxObject): LogicDeployPayload | LogicActionPayload;
     
     // TODO: Logic Call Result should be handled seperately
     protected abstract processResult(response: LogicIxResponse, timeout?: number): Promise<unknown | null>;
@@ -51,7 +51,8 @@ export abstract class LogicBase extends ElementDescriptor {
      * 
      * @returns {OpType} The interaction type.
      */
-    protected getTxType(kind: string): OpType {
+    protected getTxType(kind: string): OpType.LOGIC_DEPLOY | OpType.LOGIC_INVOKE |
+    OpType.LOGIC_ENLIST {
         switch(kind){
             case "deploy":
                 return OpType.LOGIC_DEPLOY;
@@ -156,18 +157,40 @@ export abstract class LogicBase extends ElementDescriptor {
      */
     protected processArguments(ixObject: LogicIxObject, type: string, option: RoutineOption): LogicIxArguments {
         const params: InteractionObject = {
-            ix_operations: [
-                {
-                    type: this.getTxType(ixObject.routine.kind),
-                    payload: ixObject.createPayload(),
-                }
-            ]
+            sender: option.sender ?? this.signer?.getAddress(),
+            fuel_price: option.fuelPrice,
+            fuel_limit: option.fuelLimit,
+            nonce: option.nonce,
+            ix_operations: []
         }
 
-        params.sender = option.sender ?? this.signer?.getAddress();
-        params.fuel_price = option.fuelPrice;
-        params.fuel_limit = option.fuelLimit;
-        params.nonce = option.nonce;
+        const opType = this.getTxType(ixObject.routine.kind);
+        const payload = ixObject.createPayload();
+
+        switch (opType) {
+            case OpType.LOGIC_DEPLOY:
+                params.ix_operations = [
+                    {
+                        type: OpType.LOGIC_DEPLOY,
+                        payload: payload as LogicDeployPayload,
+                    },
+                ];
+                break;
+            case OpType.LOGIC_INVOKE:
+            case OpType.LOGIC_ENLIST:
+                params.ix_operations = [
+                    {
+                        type: opType,
+                        payload: payload as LogicActionPayload,
+                    },
+                ];
+                break;
+            default:
+                ErrorUtils.throwError(
+                    `Unsupported operation type: ${opType}`,
+                    ErrorCode.UNSUPPORTED_OPERATION
+                );
+        }
 
         return { type, params }
     }
@@ -223,7 +246,7 @@ export abstract class LogicBase extends ElementDescriptor {
             return this.executeRoutine(ixObject, "estimate", option) as Promise<number | bigint>
         }
 
-        ixObject.createPayload = (): LogicPayload => {
+        ixObject.createPayload = (): LogicDeployPayload | LogicActionPayload => {
             return this.createPayload(ixObject)
         }
 

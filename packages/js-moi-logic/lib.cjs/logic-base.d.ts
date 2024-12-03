@@ -1,6 +1,6 @@
 import { ElementDescriptor, LogicManifest, ManifestCoder } from "js-moi-manifest";
-import type { AbstractProvider } from "js-moi-providers";
-import { InteractionCallResponse, InteractionResponse, LogicPayload } from "js-moi-providers";
+import type { AbstractProvider, LogicActionPayload, LogicDeployPayload } from "js-moi-providers";
+import { InteractionCallResponse, InteractionResponse } from "js-moi-providers";
 import { Signer } from "js-moi-signer";
 import { OpType } from "js-moi-utils";
 import { LogicIxArguments, LogicIxObject, LogicIxResponse } from "../types/interaction";
@@ -17,7 +17,7 @@ export declare abstract class LogicBase extends ElementDescriptor {
     protected provider: AbstractProvider;
     protected manifestCoder: ManifestCoder;
     constructor(manifest: LogicManifest.Manifest, signer: Signer);
-    protected abstract createPayload(ixObject: LogicIxObject): LogicPayload;
+    protected abstract createPayload(ixObject: LogicIxObject): LogicDeployPayload | LogicActionPayload;
     protected abstract processResult(response: LogicIxResponse, timeout?: number): Promise<unknown | null>;
     /**
      * Returns the logic ID associated with the LogicBase instance.
@@ -30,7 +30,7 @@ export declare abstract class LogicBase extends ElementDescriptor {
      *
      * @returns {OpType} The interaction type.
      */
-    protected getTxType(kind: string): OpType;
+    protected getTxType(kind: string): OpType.LOGIC_DEPLOY | OpType.LOGIC_INVOKE | OpType.LOGIC_ENLIST;
     /**
      * Updates the signer and provider instances for the LogicBase instance.
      *

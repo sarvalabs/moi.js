@@ -1,5 +1,5 @@
 import { LogicManifest, ManifestCoder } from "js-moi-manifest";
-import { InteractionResponse, LogicPayload } from "js-moi-providers";
+import { InteractionResponse, LogicDeployPayload } from "js-moi-providers";
 import { Signer } from "js-moi-signer";
 import { ErrorCode, ErrorUtils } from "js-moi-utils";
 import { LogicIxObject, LogicIxResponse, LogicIxResult } from "../types/interaction";
@@ -23,13 +23,13 @@ export class LogicFactory extends LogicBase {
      * Creates the payload for the logic interaction object.
      * 
      * @param {LogicIxObject} ixObject - The logic interaction object.
-     * @returns {LogicPayload} The logic payload.
+     * @returns {LogicDeployPayload} The logic deploy payload.
      */
-    protected createPayload(ixObject: LogicIxObject): LogicPayload {
+    protected createPayload(ixObject: LogicIxObject): LogicDeployPayload {
         const payload = {
             manifest: this.encodedManifest,
             callsite: ixObject.routine.name
-        } as LogicPayload;
+        } as LogicDeployPayload;
 
         if(ixObject.routine.accepts && Object.keys(ixObject.routine.accepts).length > 0) {
             payload.calldata = this.manifestCoder.encodeArguments(

@@ -147,7 +147,8 @@ describe("Wallet", () => {
         });
 
         test("signInteraction", () => {
-            const ixObject = {
+            const algo = wallet.signingAlgorithms["ecdsa_secp256k1"];
+            const ixArgs = wallet.signInteraction({
                 nonce: 0,
                 sender: wallet.address,
                 fuel_price: 1,
@@ -162,10 +163,7 @@ describe("Wallet", () => {
                         },
                     }
                 ]
-            };
-
-            const algo = wallet.signingAlgorithms["ecdsa_secp256k1"];
-            const ixArgs = wallet.signInteraction(ixObject, algo);
+            }, algo);
 
             expect(ixArgs).toBeDefined();
             expect(ixArgs).toMatchObject<InteractionRequest>({

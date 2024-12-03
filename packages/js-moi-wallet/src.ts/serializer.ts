@@ -23,7 +23,6 @@ const processFunds = (ixObject: InteractionObject): ProcessedIxAssetFund[] => {
     ixObject.ix_operations.forEach(operation => {
         switch(operation.type) {
             case OpType.ASSET_TRANSFER:
-            case OpType.ASSET_MINT:
             case OpType.ASSET_BURN: {
                 const payload = operation.payload as AssetSupplyPayload | AssetActionPayload;
                 const amount = assetFunds.get(payload.asset_id) ?? 0;

@@ -1,5 +1,5 @@
 import { OpType } from "js-moi-utils";
-import { AssetActionPayload, AssetCreatePayload, AssetSupplyPayload, CallorEstimateIxObject, LogicPayload, ParticipantCreatePayload, OperationPayload, ProcessedCallorEstimateIxObject } from "../types/jsonrpc";
+import { AssetActionPayload, AssetCreatePayload, AssetSupplyPayload, CallorEstimateIxObject, ParticipantCreatePayload, OperationPayload, ProcessedCallorEstimateIxObject, LogicActionPayload, LogicDeployPayload } from "../types/jsonrpc";
 /**
  * Validates the payload for PARTICIPANT_CREATE operation type.
  *
@@ -28,7 +28,7 @@ export declare const validateAssetSupplyPayload: (payload: OperationPayload) => 
  * Validates the payload for ASSET_TRANSFER operation type.
  *
  * @param {OperationPayload} payload - The operation payload.
- * @returns {AssetActionPayload} - The validated payload.
+ * @returns {AssetActionPayload} - The validated logic action payload.
  * @throws {Error} - Throws an error if the payload is invalid.
  */
 export declare const validateAssetTransferPayload: (payload: OperationPayload) => AssetActionPayload;
@@ -36,29 +36,29 @@ export declare const validateAssetTransferPayload: (payload: OperationPayload) =
  * Validates the payload for LOGIC_DEPLOY operation type.
  *
  * @param {OperationPayload} payload - The operation payload.
- * @returns {LogicPayload} - The validated payload.
+ * @returns {LogicDeployPayload} - The validated logic deploy payload.
  * @throws {Error} - Throws an error if the payload is invalid.
  */
-export declare const validateLogicDeployPayload: (payload: OperationPayload) => LogicPayload;
+export declare const validateLogicDeployPayload: (payload: OperationPayload) => LogicDeployPayload;
 /**
  * Validates the payload for LOGIC_INVOKE and LOGIC_ENLIST operation types.
  *
  * @param {OperationPayload} payload - The operation payload.
- * @returns {LogicPayload} - The validated payload.
+ * @returns {LogicActionPayload} - The validated logic action payload.
  * @throws {Error} - Throws an error if the payload is invalid.
  */
-export declare const validateLogicPayload: (payload: OperationPayload) => LogicPayload;
+export declare const validateLogicActionPayload: (payload: OperationPayload) => LogicActionPayload;
 /**
  * Serializes the payload of a operation based on its type.
  * This function polorizes (serializes) the payload using the appropriate schema
  * based on the operation type and returns it as a byte array.
  *
- * @param {OpType} txType - The type of the operation (e.g., ASSET_TRANSFER, ASSET_CREATE).
+ * @param {OpType} opType - The type of the operation (e.g., ASSET_TRANSFER, ASSET_CREATE).
  * @param {OperationPayload} payload - The payload of the operation to be serialized.
  * @returns {Uint8Array} - A serialized byte array representing the processed payload.
  * @throws {Error} - Throws an error if the operation type is unsupported.
  */
-export declare const serializePayload: (txType: OpType, payload: OperationPayload) => Uint8Array;
+export declare const serializePayload: (opType: OpType, payload: OperationPayload) => Uint8Array;
 /**
  * Processes the interaction object based on its type and returns the processed object.
  *

@@ -1,5 +1,5 @@
 import { LogicManifest, ManifestCoder } from "js-moi-manifest";
-import { LogicPayload, Options } from "js-moi-providers";
+import { LogicActionPayload, Options } from "js-moi-providers";
 import { Signer } from "js-moi-signer";
 import { ErrorCode, ErrorUtils, defineReadOnly } from "js-moi-utils";
 import { LogicIxObject, LogicIxResponse, LogicIxResult } from "../types/interaction";
@@ -110,13 +110,13 @@ export class LogicDriver<T extends Record<string, (...args: any) => any> = any> 
      * Creates the logic payload from the given interaction object.
      * 
      * @param {LogicIxObject} ixObject - The interaction object.
-     * @returns {LogicPayload} The logic payload.
+     * @returns {LogicActionPayload} The logic action payload.
      */
-    protected createPayload(ixObject: LogicIxObject): LogicPayload {
+    protected createPayload(ixObject: LogicIxObject): LogicActionPayload {
         const payload = {
             logic_id: this.getLogicId().string(),
             callsite: ixObject.routine.name,
-        } as LogicPayload
+        } as LogicActionPayload
 
         if(ixObject.routine.accepts && 
         Object.keys(ixObject.routine.accepts).length > 0) {

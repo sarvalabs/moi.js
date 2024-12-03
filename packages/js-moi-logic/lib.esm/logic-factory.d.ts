@@ -1,5 +1,5 @@
 import { LogicManifest } from "js-moi-manifest";
-import { InteractionResponse, LogicPayload } from "js-moi-providers";
+import { InteractionResponse, LogicDeployPayload } from "js-moi-providers";
 import { Signer } from "js-moi-signer";
 import { LogicIxObject, LogicIxResponse, LogicIxResult } from "../types/interaction";
 import { LogicBase } from "./logic-base";
@@ -15,9 +15,9 @@ export declare class LogicFactory extends LogicBase {
      * Creates the payload for the logic interaction object.
      *
      * @param {LogicIxObject} ixObject - The logic interaction object.
-     * @returns {LogicPayload} The logic payload.
+     * @returns {LogicDeployPayload} The logic deploy payload.
      */
-    protected createPayload(ixObject: LogicIxObject): LogicPayload;
+    protected createPayload(ixObject: LogicIxObject): LogicDeployPayload;
     /**
      * Processes the result of a logic interaction response.
      *

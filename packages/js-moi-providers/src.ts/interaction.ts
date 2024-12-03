@@ -1,7 +1,7 @@
 import { ErrorCode, ErrorUtils, OpType, participantCreateSchema, assetActionSchema, assetCreateSchema, assetSupplySchema, bytesToHex, hexToBytes, logicSchema, toQuantity, trimHexPrefix, LockType } from "js-moi-utils";
 import { Polorizer } from "js-polo";
 import { ZERO_ADDRESS } from "js-moi-constants";
-import { AssetActionPayload, AssetCreatePayload, AssetSupplyPayload, CallorEstimateIxObject, LogicPayload, ParticipantCreatePayload, ProcessedOperationPayload, OperationPayload, InteractionObject, IxOperation, ProcessedIxOperation, IxParticipant, ProcessedCallorEstimateIxObject, ProcessedIxAssetFund } from "../types/jsonrpc";
+import { AssetActionPayload, AssetCreatePayload, AssetSupplyPayload, CallorEstimateIxObject, LogicPayload, ParticipantCreatePayload, ProcessedOperationPayload, OperationPayload, InteractionObject, IxOperation, ProcessedIxOperation, IxParticipant, ProcessedCallorEstimateIxObject, ProcessedIxAssetFund, LogicActionPayload, LogicDeployPayload } from "../types/jsonrpc";
 
 /**
  * Validates the payload for PARTICIPANT_CREATE operation type.
@@ -52,7 +52,7 @@ export const validateAssetSupplyPayload = (payload: OperationPayload): AssetSupp
  * Validates the payload for ASSET_TRANSFER operation type.
  *
  * @param {OperationPayload} payload - The operation payload.
- * @returns {AssetActionPayload} - The validated payload.
+ * @returns {AssetActionPayload} - The validated logic action payload.
  * @throws {Error} - Throws an error if the payload is invalid.
  */
 export const validateAssetTransferPayload = (payload: OperationPayload): AssetActionPayload => {
@@ -67,12 +67,12 @@ export const validateAssetTransferPayload = (payload: OperationPayload): AssetAc
  * Validates the payload for LOGIC_DEPLOY operation type.
  *
  * @param {OperationPayload} payload - The operation payload.
- * @returns {LogicPayload} - The validated payload.
+ * @returns {LogicDeployPayload} - The validated logic deploy payload.
  * @throws {Error} - Throws an error if the payload is invalid.
  */
-export const validateLogicDeployPayload = (payload: OperationPayload): LogicPayload => {
-    if ('manifest' in payload && 'callsite' in payload && 'calldata' in payload) {
-        return payload as LogicPayload;
+export const validateLogicDeployPayload = (payload: OperationPayload): LogicDeployPayload => {
+    if ('manifest' in payload && 'callsite' in payload) {
+        return payload as LogicDeployPayload;
     }
 
     throw new Error("Invalid logic deploy payload");
@@ -82,12 +82,12 @@ export const validateLogicDeployPayload = (payload: OperationPayload): LogicPayl
  * Validates the payload for LOGIC_INVOKE and LOGIC_ENLIST operation types.
  *
  * @param {OperationPayload} payload - The operation payload.
- * @returns {LogicPayload} - The validated payload.
+ * @returns {LogicActionPayload} - The validated logic action payload.
  * @throws {Error} - Throws an error if the payload is invalid.
  */
-export const validateLogicPayload = (payload: OperationPayload): LogicPayload => {
-    if ('logic_id' in payload && 'callsite' in payload && 'calldata' in payload) {
-        return payload as LogicPayload;
+export const validateLogicActionPayload = (payload: OperationPayload): LogicActionPayload => {
+    if ('logic_id' in payload && 'callsite' in payload) {
+        return payload as LogicActionPayload;
     }
 
     throw new Error("Invalid logic invoke or enlist payload");
@@ -96,13 +96,13 @@ export const validateLogicPayload = (payload: OperationPayload): LogicPayload =>
 /**
  * Processes the payload based on the operation type.
  *
- * @param {OpType} txType - The operation type.
+ * @param {OpType} opType - The operation type.
  * @param {OperationPayload} payload - The operation payload.
  * @returns {OperationPayload} - The processed operation payload.
  * @throws {Error} - Throws an error if the operation type is unsupported.
  */
-const processPayload = (txType: OpType, payload: OperationPayload): ProcessedOperationPayload => {
-    switch (txType) {
+const processPayload = (opType: OpType, payload: OperationPayload): ProcessedOperationPayload => {
+    switch (opType) {
         case OpType.PARTICIPANT_CREATE: {
             const participantPayload = validateParticipantCreatePayload(payload);
 
@@ -141,23 +141,23 @@ const processPayload = (txType: OpType, payload: OperationPayload): ProcessedOpe
             return {
                 manifest: hexToBytes(logicPayload.manifest),
                 callsite: logicPayload.callsite,
-                calldata: hexToBytes(logicPayload.calldata),
+                calldata: logicPayload.calldata ? hexToBytes(logicPayload.calldata) : null,
             };
         }
 
         case OpType.LOGIC_INVOKE:
         case OpType.LOGIC_ENLIST: {
-            const logicPayload = validateLogicPayload(payload);
+            const logicPayload = validateLogicActionPayload(payload);
             return {
                 logic_id: trimHexPrefix(logicPayload.logic_id),
                 callsite: logicPayload.callsite,
-                calldata: hexToBytes(logicPayload.calldata),
+                calldata: logicPayload.calldata ? hexToBytes(logicPayload.calldata) : null,
             };
         }
 
         default:
             ErrorUtils.throwError(
-                `Unsupported operation type: ${txType}`,
+                `Unsupported operation type: ${opType}`,
                 ErrorCode.UNSUPPORTED_OPERATION
             );
     }
@@ -169,15 +169,15 @@ const processPayload = (txType: OpType, payload: OperationPayload): ProcessedOpe
  * This function polorizes (serializes) the payload using the appropriate schema 
  * based on the operation type and returns it as a byte array.
  *
- * @param {OpType} txType - The type of the operation (e.g., ASSET_TRANSFER, ASSET_CREATE).
+ * @param {OpType} opType - The type of the operation (e.g., ASSET_TRANSFER, ASSET_CREATE).
  * @param {OperationPayload} payload - The payload of the operation to be serialized.
  * @returns {Uint8Array} - A serialized byte array representing the processed payload.
  * @throws {Error} - Throws an error if the operation type is unsupported.
  */
-export const serializePayload = (txType: OpType, payload: OperationPayload): Uint8Array => {
+export const serializePayload = (opType: OpType, payload: OperationPayload): Uint8Array => {
     const polorizer = new Polorizer()
-    const processedPayload = processPayload(txType, payload)
-    switch(txType) {
+    const processedPayload = processPayload(opType, payload)
+    switch(opType) {
         case OpType.PARTICIPANT_CREATE:
             polorizer.polorize(processedPayload, participantCreateSchema);
             return polorizer.bytes()
@@ -198,7 +198,7 @@ export const serializePayload = (txType: OpType, payload: OperationPayload): Uin
             return polorizer.bytes()
         default:
             ErrorUtils.throwError(
-                `Unsupported operation type: ${txType}`, 
+                `Unsupported operation type: ${opType}`, 
                 ErrorCode.UNSUPPORTED_OPERATION
             );
     }
@@ -217,7 +217,6 @@ const processFunds = (ixObject: InteractionObject): ProcessedIxAssetFund[] => {
     ixObject.ix_operations.forEach(operation => {
         switch(operation.type) {
             case OpType.ASSET_TRANSFER:
-            case OpType.ASSET_MINT:
             case OpType.ASSET_BURN: {
                 const payload = operation.payload as AssetSupplyPayload | AssetActionPayload;
                 const amount = assetFunds.get(payload.asset_id) ?? 0;

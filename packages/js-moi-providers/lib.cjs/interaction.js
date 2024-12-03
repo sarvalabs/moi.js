@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.processIxObject = exports.serializePayload = exports.validateLogicPayload = exports.validateLogicDeployPayload = exports.validateAssetTransferPayload = exports.validateAssetSupplyPayload = exports.validateAssetCreatePayload = exports.validateParticipantCreatePayload = void 0;
+exports.processIxObject = exports.serializePayload = exports.validateLogicActionPayload = exports.validateLogicDeployPayload = exports.validateAssetTransferPayload = exports.validateAssetSupplyPayload = exports.validateAssetCreatePayload = exports.validateParticipantCreatePayload = void 0;
 const js_moi_utils_1 = require("js-moi-utils");
 const js_polo_1 = require("js-polo");
 const js_moi_constants_1 = require("js-moi-constants");
@@ -50,7 +50,7 @@ exports.validateAssetSupplyPayload = validateAssetSupplyPayload;
  * Validates the payload for ASSET_TRANSFER operation type.
  *
  * @param {OperationPayload} payload - The operation payload.
- * @returns {AssetActionPayload} - The validated payload.
+ * @returns {AssetActionPayload} - The validated logic action payload.
  * @throws {Error} - Throws an error if the payload is invalid.
  */
 const validateAssetTransferPayload = (payload) => {
@@ -64,11 +64,11 @@ exports.validateAssetTransferPayload = validateAssetTransferPayload;
  * Validates the payload for LOGIC_DEPLOY operation type.
  *
  * @param {OperationPayload} payload - The operation payload.
- * @returns {LogicPayload} - The validated payload.
+ * @returns {LogicDeployPayload} - The validated logic deploy payload.
  * @throws {Error} - Throws an error if the payload is invalid.
  */
 const validateLogicDeployPayload = (payload) => {
-    if ('manifest' in payload && 'callsite' in payload && 'calldata' in payload) {
+    if ('manifest' in payload && 'callsite' in payload) {
         return payload;
     }
     throw new Error("Invalid logic deploy payload");
@@ -78,26 +78,26 @@ exports.validateLogicDeployPayload = validateLogicDeployPayload;
  * Validates the payload for LOGIC_INVOKE and LOGIC_ENLIST operation types.
  *
  * @param {OperationPayload} payload - The operation payload.
- * @returns {LogicPayload} - The validated payload.
+ * @returns {LogicActionPayload} - The validated logic action payload.
  * @throws {Error} - Throws an error if the payload is invalid.
  */
-const validateLogicPayload = (payload) => {
-    if ('logic_id' in payload && 'callsite' in payload && 'calldata' in payload) {
+const validateLogicActionPayload = (payload) => {
+    if ('logic_id' in payload && 'callsite' in payload) {
         return payload;
     }
     throw new Error("Invalid logic invoke or enlist payload");
 };
-exports.validateLogicPayload = validateLogicPayload;
+exports.validateLogicActionPayload = validateLogicActionPayload;
 /**
  * Processes the payload based on the operation type.
  *
- * @param {OpType} txType - The operation type.
+ * @param {OpType} opType - The operation type.
  * @param {OperationPayload} payload - The operation payload.
  * @returns {OperationPayload} - The processed operation payload.
  * @throws {Error} - Throws an error if the operation type is unsupported.
  */
-const processPayload = (txType, payload) => {
-    switch (txType) {
+const processPayload = (opType, payload) => {
+    switch (opType) {
         case js_moi_utils_1.OpType.PARTICIPANT_CREATE: {
             const participantPayload = (0, exports.validateParticipantCreatePayload)(payload);
             return {
@@ -131,20 +131,20 @@ const processPayload = (txType, payload) => {
             return {
                 manifest: (0, js_moi_utils_1.hexToBytes)(logicPayload.manifest),
                 callsite: logicPayload.callsite,
-                calldata: (0, js_moi_utils_1.hexToBytes)(logicPayload.calldata),
+                calldata: logicPayload.calldata ? (0, js_moi_utils_1.hexToBytes)(logicPayload.calldata) : null,
             };
         }
         case js_moi_utils_1.OpType.LOGIC_INVOKE:
         case js_moi_utils_1.OpType.LOGIC_ENLIST: {
-            const logicPayload = (0, exports.validateLogicPayload)(payload);
+            const logicPayload = (0, exports.validateLogicActionPayload)(payload);
             return {
                 logic_id: (0, js_moi_utils_1.trimHexPrefix)(logicPayload.logic_id),
                 callsite: logicPayload.callsite,
-                calldata: (0, js_moi_utils_1.hexToBytes)(logicPayload.calldata),
+                calldata: logicPayload.calldata ? (0, js_moi_utils_1.hexToBytes)(logicPayload.calldata) : null,
             };
         }
         default:
-            js_moi_utils_1.ErrorUtils.throwError(`Unsupported operation type: ${txType}`, js_moi_utils_1.ErrorCode.UNSUPPORTED_OPERATION);
+            js_moi_utils_1.ErrorUtils.throwError(`Unsupported operation type: ${opType}`, js_moi_utils_1.ErrorCode.UNSUPPORTED_OPERATION);
     }
 };
 /**
@@ -152,15 +152,15 @@ const processPayload = (txType, payload) => {
  * This function polorizes (serializes) the payload using the appropriate schema
  * based on the operation type and returns it as a byte array.
  *
- * @param {OpType} txType - The type of the operation (e.g., ASSET_TRANSFER, ASSET_CREATE).
+ * @param {OpType} opType - The type of the operation (e.g., ASSET_TRANSFER, ASSET_CREATE).
  * @param {OperationPayload} payload - The payload of the operation to be serialized.
  * @returns {Uint8Array} - A serialized byte array representing the processed payload.
  * @throws {Error} - Throws an error if the operation type is unsupported.
  */
-const serializePayload = (txType, payload) => {
+const serializePayload = (opType, payload) => {
     const polorizer = new js_polo_1.Polorizer();
-    const processedPayload = processPayload(txType, payload);
-    switch (txType) {
+    const processedPayload = processPayload(opType, payload);
+    switch (opType) {
         case js_moi_utils_1.OpType.PARTICIPANT_CREATE:
             polorizer.polorize(processedPayload, js_moi_utils_1.participantCreateSchema);
             return polorizer.bytes();
@@ -180,7 +180,7 @@ const serializePayload = (txType, payload) => {
             polorizer.polorize(processedPayload, js_moi_utils_1.logicSchema);
             return polorizer.bytes();
         default:
-            js_moi_utils_1.ErrorUtils.throwError(`Unsupported operation type: ${txType}`, js_moi_utils_1.ErrorCode.UNSUPPORTED_OPERATION);
+            js_moi_utils_1.ErrorUtils.throwError(`Unsupported operation type: ${opType}`, js_moi_utils_1.ErrorCode.UNSUPPORTED_OPERATION);
     }
 };
 exports.serializePayload = serializePayload;
@@ -196,7 +196,6 @@ const processFunds = (ixObject) => {
     ixObject.ix_operations.forEach(operation => {
         switch (operation.type) {
             case js_moi_utils_1.OpType.ASSET_TRANSFER:
-            case js_moi_utils_1.OpType.ASSET_MINT:
             case js_moi_utils_1.OpType.ASSET_BURN: {
                 const payload = operation.payload;
                 const amount = assetFunds.get(payload.asset_id) ?? 0;
