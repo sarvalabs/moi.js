@@ -1,0 +1,23 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "noEmitOnError": false,
+        // Type Checking Setting
+        "strict": false,
+        "alwaysStrict": true,
+        "allowUnreachableCode": false,
+        "allowUnusedLabels": false,
+        "noImplicitAny": false,
+        "noImplicitOverride": false,
+        "noPropertyAccessFromIndexSignature": false,
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
+        "useUnknownInCatchVariables": false,
+        "skipLibCheck": true,
+
+        // Interoperability Setting
+
+        // Language and Environment Setting
+        "lib": ["ESNext", "DOM"]
+    }
+}

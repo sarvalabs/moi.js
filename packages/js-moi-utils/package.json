@@ -4,8 +4,22 @@
   "description": "Collection of utility functions used in js-moi-sdk.",
   "main": "./lib.cjs/index.js",
   "module": "./lib.esm/index.js",
+  "exports": {
+    ".": {
+      "import": "./lib.esm/index.js",
+      "require": "./lib.cjs/index.js"
+    }
+  },
   "scripts": {
-    "compile": "tsc -b tsconfig.json"
+    "build:cjs": "tsc -p tsconfig.build.json --outDir ./lib.cjs",
+    "watch:cjs": "tsc -p tsconfig.build.json --outDir ./lib.cjs --watch",
+    "build:esm": "tsc -p tsconfig.build.json --outDir ./lib.esm --module ESNext --moduleResolution Bundler",
+    "watch:esm": "tsc -p tsconfig.build.json --outDir ./lib.esm --module ESNext --moduleResolution Bundler --watch",
+    "watch": "npm run watch:cjs & npm run watch:esm",
+    "build": "npm run build:cjs && npm run build:esm",
+    "check-types": "tsc --noEmit",
+    "clean": "rm -rf ./lib.cjs ./lib.esm",
+    "clean:node_modules": "rm -rf node_modules"
   },
   "homepage": "https://docs.moi.technology/docs/build/packages/js-moi-sdk",
   "repository": {
@@ -23,8 +37,11 @@
   "author": "Sarva Labs Inc. & MOI Protocol Developers",
   "license": "Apache-2.0 OR MIT",
   "dependencies": {
+    "@noble/hashes": "^1.7.1",
     "bn.js": "^5.2.1",
-    "buffer": "^6.0.3"
+    "js-moi-constants": "0.6.0",
+    "js-moi-identifiers": "^0.6.0",
+    "polo-schema": "^1.0.3"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.5"

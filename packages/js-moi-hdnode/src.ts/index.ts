@@ -1,1 +1,1 @@
-export * from "./hdnode";
+export { HDNode } from "./hdnode";

@@ -4,8 +4,22 @@
   "description": "Module to encode and decode MOI Logic Engine input and output.",
   "main": "./lib.cjs/index.js",
   "module": "./lib.esm/index.js",
+  "exports": {
+    ".": {
+      "import": "./lib.esm/index.js",
+      "require": "./lib.cjs/index.js"
+    }
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build:cjs": "tsc -p tsconfig.build.json --outDir ./lib.cjs",
+    "watch:cjs": "tsc -p tsconfig.build.json --outDir ./lib.cjs --watch",
+    "build:esm": "tsc -p tsconfig.build.json --outDir ./lib.esm --module ESNext --moduleResolution Bundler",
+    "watch:esm": "tsc -p tsconfig.build.json --outDir ./lib.esm --module ESNext --moduleResolution Bundler --watch",
+    "watch": "npm run watch:cjs & npm run watch:esm",
+    "build": "npm run build:cjs && npm run build:esm",
+    "check-types": "tsc --noEmit",
+    "clean": "rm -rf ./lib.cjs ./lib.esm",
+    "clean:node_modules": "rm -rf node_modules"
   },
   "homepage": "https://docs.moi.technology/docs/build/packages/js-moi-sdk",
   "repository": {
