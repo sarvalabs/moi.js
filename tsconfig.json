@@ -1,91 +1,34 @@
 {
     "compilerOptions": {
-        "esModuleInterop": true,
-        "types": ["node", "jest"],
-        "lib": ["ES6", "ESNext", "DOM"],
-        "target": "ES2022",
+        // Module Setting
         "module": "NodeNext",
         "moduleResolution": "NodeNext",
-        "declaration": true,
-        "pretty": true,
-        "sourceMap": true,
-        "outDir": "dist",
-        "declarationMap": true,
-        "forceConsistentCasingInFileNames": true,
-        "noFallthroughCasesInSwitch": true,
-        "noImplicitAny": false,
-        "noImplicitReturns": true,
         "resolveJsonModule": true,
-        "experimentalDecorators": true,
+
+        // Emit Setting
+        "target": "ES2022",
+
+        // Type Checking Setting
+        "strict": true,
+        "alwaysStrict": true,
+        "allowUnreachableCode": false,
+        "allowUnusedLabels": false,
+        "noImplicitAny": true,
+        "noImplicitOverride": true,
+        "noPropertyAccessFromIndexSignature": false,
         "noUnusedLocals": true,
-        "incremental": true,
-        "tsBuildInfoFile": "dist/.tsbuildinfo"
+        "noUnusedParameters": true,
+        "useUnknownInCatchVariables": true,
+        "skipLibCheck": true,
+
+        // Interoperability Setting
+        "isolatedModules": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+
+        // Language and Environment Setting
+        "lib": ["ESNext", "DOM"]
     },
-    "ts-node": {
-        "esm": true
-    },
-    "references": [
-        {
-            "path": "./packages/js-moi-constants/tsconfig.cjs.json"
-        },
-        {
-            "path": "./packages/js-moi-constants/tsconfig.esm.json"
-        },
-        {
-            "path": "./packages/js-moi-utils/tsconfig.cjs.json"
-        },
-        {
-            "path": "./packages/js-moi-utils/tsconfig.esm.json"
-        },
-        {
-            "path": "./packages/js-moi-manifest/tsconfig.cjs.json"
-        },
-        {
-            "path": "./packages/js-moi-manifest/tsconfig.esm.json"
-        },
-        {
-            "path": "./packages/js-moi-providers/tsconfig.cjs.json"
-        },
-        {
-            "path": "./packages/js-moi-providers/tsconfig.esm.json"
-        },
-        {
-            "path": "./packages/js-moi-hdnode/tsconfig.cjs.json"
-        },
-        {
-            "path": "./packages/js-moi-hdnode/tsconfig.esm.json"
-        },
-        {
-            "path": "./packages/js-moi-signer/tsconfig.cjs.json"
-        },
-        {
-            "path": "./packages/js-moi-signer/tsconfig.esm.json"
-        },
-        {
-            "path": "./packages/js-moi-bip39/tsconfig.cjs.json"
-        },
-        {
-            "path": "./packages/js-moi-bip39/tsconfig.esm.json"
-        },
-        {
-            "path": "./packages/js-moi-wallet/tsconfig.cjs.json"
-        },
-        {
-            "path": "./packages/js-moi-wallet/tsconfig.esm.json"
-        },
-        {
-            "path": "./packages/js-moi-logic/tsconfig.cjs.json"
-        },
-        {
-            "path": "./packages/js-moi-logic/tsconfig.esm.json"
-        },
-        {
-            "path": "./packages/js-moi/tsconfig.cjs.json"
-        }, 
-        {
-            "path": "./packages/js-moi/tsconfig.esm.json"
-        }
-    ],
-    "include": ["packages/**/*.ts"],
-    "exclude": ["node_modules", "**/__tests__/**" ,"dist"]
+    "include": ["packages/**/*"],
+    "exclude": ["node_modules", "packages/**/node_modules", "packages/**/lib.*"]
 }

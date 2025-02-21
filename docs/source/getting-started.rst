@@ -1,44 +1,70 @@
-===============
 Getting Started
 ===============
-
---------------------------------------------------------------------------------
 
 Kickstart your journey with js-moi-sdk by installing and importing it. Unleash its 
 potential through comprehensive documentation and resources to supercharge 
 your application development.
 
+It consists of several modules that provide a wide range of functionalities
+to interact with the MOI Protocol and its ecosystem. These modules include
+
+- `js-moi-bip39 <https://www.npmjs.com/package/js-moi-bip39>`_: This package offers the features necessary for generating and handling mnemonic phrases in accordance with the BIP39 standard.
+- `js-moi-constants <https://www.npmjs.com/package/js-moi-constants>`_: This package includes common constants used within the js-moi-sdk ecosystem. These constants provide predefined values for various aspects of MOI, making it easier to work with the protocol.
+- `js-moi-hdnode <https://www.npmjs.com/package/js-moi-hdnode>`_: This package represents a Hierarchical Deterministic (HD) Node for cryptographic key generation and derivation. It allows you to generate and manage keys within a hierarchical structure, providing enhanced security and flexibility.
+- `js-moi-signer <https://www.npmjs.com/package/js-moi-signer>`_: This package represents an MOI account with the ability to sign interactions and messages for cryptographic proof. It provides the necessary tools to sign interactions securely and authenticate interactions on the MOI network.
+- `js-moi-provider <https://www.npmjs.com/package/js-moi-provider>`_: This package enables you to connect to MOI nodes and retrieve blockchain data, such as account balances and interaction history. It provides an interface for interacting with the MOI protocol and fetching information from the network.
+- `js-moi-wallet <https://www.npmjs.com/package/js-moi-wallet>`_: This package represents a Hierarchical Deterministic Wallet capable of signing interactions and managing accounts. It provides a convenient interface for managing multiple accounts, generating keys, and securely signing interactions.
+- `js-moi-logic <https://www.npmjs.com/package/js-moi-logic>`_: This package simplifies interaction with MOI logic objects by offering deployment, interaction, and querying capabilities. It provides a higher-level interface for working with MOI logic, allowing you to deploy logic objects, send interactions, and retrieve results.
+- `js-moi-manifest <https://www.npmjs.com/package/js-moi-manifest>`_: This package encodes and decodes data according to the MOI Manifest specification, facilitating interaction with logic objects. It simplifies the process of encoding and decoding data structures, making it easier to work with MOI logic objects.
+- `js-moi-identifiers <https://www.npmjs.com/package/js-moi-identifiers>`_: PThis package provides utils for working with various identifiers used in the MOI ecosystem. It offers functions for getting and setting identifiers, as well as validating and formatting them according to the MOI standard.
+- `js-moi-utils <https://www.npmjs.com/package/js-moi-utils>`_: This package offers a comprehensive set of tools and functions to enhance development with MOI. It provides utility functions that simplify common tasks, making your development experience smoother and more efficient.
+
+All of these modules come pre-installed with ``js-moi-sdk``. However, if you
+prefer, you can also install them individually based on your needs.
+
 Installing
 ------------
-Install the latest `release <https://github.com/sarvalabs/js-moi-sdk/releases>`_ 
+Install the latest `release <https://www.npmjs.com/package/js-moi-sdk>`_ 
 using the following command:
+
+**Using NPM**
 
 .. code-block:: shell
 
     npm install js-moi-sdk
 
+**Using Yarn**
+
+.. code-block:: shell
+
+    yarn add js-moi-sdk
+
+**Using PNPM**
+
+.. code-block:: shell
+
+    pnpm add js-moi-sdk
+
 Importing
 -----------
-If you are using CommonJS or ES5, the require statement is used for 
-importing `js-moi-sdk`.
+If you are using CommonJS module, you can use ``require`` to import from `js-moi-sdk`.
 
 .. code-block:: javascript
 
-   const moi = require("js-moi-sdk")
+   const { Wallet, HttpProvider } = require("js-moi-sdk")
 
-If you are using ES6 or above, you can use the import statement to 
-import `js-moi-sdk`.
+If you are using EcmaScript module or TypeScript, you can use the import statement.
 
 .. code-block:: javascript
 
-   import * as moi from "js-moi-sdk"
+   import { Wallet, HttpProvider } from "js-moi-sdk"
 
 Key Concepts
 ------------
-To begin, it's crucial to grasp the fundamental concepts that underpin the 
-js-moi-sdk framework. Acquainting yourself with these concepts will empower you to 
-utilize the js-moi-sdk package efficiently during your application development 
-process.
+
+Before you begin, understanding the core concepts of ``js-moi-sdk`` is essential.
+Familiarizing yourself with these fundamentals will help you use the package
+efficiently in your application development.
 
 **Tesseract**
 
@@ -117,3 +143,9 @@ which is widely used for identity verification and authentication purposes in
 decentralized applications. Developers can utilize the signer's capabilities to 
 sign and verify arbitrary messages, providing cryptographic proof of the 
 message's origin and integrity.
+
+**Provider**
+
+A provider is a convenient interface for connecting to MOI network.
+It allows developers to execute JSON-RPC calls to the MOI network and retrieve
+data from the network.

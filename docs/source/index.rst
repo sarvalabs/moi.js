@@ -1,17 +1,14 @@
-=============
 Documentation
 =============
 
 This documentation is for js-moi-sdk |version|
 
---------------------------------------------------------------------------------
 
 What is js-moi-sdk?
 -------------------
-The js-moi-sdk is a feature-rich library designed to seamlessly interact with 
-the MOI Protocol and its extensive ecosystem.  It strives to be a compact and 
-comprehensive solution, providing developers with all the necessary tools they 
-need to unlock the full potential of the MOI Protocol.
+The js-moi-sdk is a powerful library designed for seamless interaction with the `MOI Protocol <https://moi.technology/>`_ and its ecosystem.
+It offers a compact yet comprehensive solution, equipping developers with all the essential tools to leverage the
+full potential of the MOI Protocol.
 
 --------------------------------------------------------------------------------
 
@@ -21,13 +18,14 @@ need to unlock the full potential of the MOI Protocol.
 
    getting-started
    constants
-   manifest-call-encoder
-   providers
-   signer
-   logic
    bip39
+   identifiers
+   manifest-coder
+   providers
    hierarchical-deterministic-node
+   signer
    hierarchical-deterministic-wallet
+   logic
    utilities
    contributions
    license-and-copyright

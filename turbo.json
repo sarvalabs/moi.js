@@ -1,0 +1,52 @@
+{
+    "$schema": "https://turbo.build/schema.json",
+    "ui": "tui",
+    "tasks": {
+        "clean": {
+            "cache": false
+        },
+        "clean:node_modules": {
+            "cache": false
+        },
+        "check-types": {
+            "dependsOn": [
+                "^build",
+                "^check-types"
+            ],
+            "cache": false
+        },
+        "build:esm": {
+            "dependsOn": [
+                "^build:esm"
+            ],
+            "cache": false
+        },
+        "build:cjs": {
+            "dependsOn": [
+                "^build:cjs"
+            ],
+            "cache": false
+        },
+        "watch": {
+            "dependsOn": [
+                "^build"
+            ],
+            "cache": false,
+            "persistent": true
+        },
+        "build": {
+            "dependsOn": [
+                "^build"
+            ],
+            "cache": true,
+            "inputs": [
+                "src.ts/**",
+                "types/**",
+                "tsconfig.build.json"
+            ],
+            "outputs": [
+                "lib.*/**"
+            ]
+        }
+    }
+}

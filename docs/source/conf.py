@@ -22,23 +22,27 @@ release = u'v0.6.0'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx_js']
-root_for_relative_js_paths = '~/'
+extensions = ['sphinx.ext.autodoc', 'sphinx_js', 'sphinx_copybutton']
+root_for_relative_js_paths = '../../'
 js_source_path = [
-    '../../packages/js-moi-manifest/lib.cjs', 
-    '../../packages/js-moi-providers/lib.cjs',
-    '../../packages/js-moi-signer/lib.cjs',
-    '../../packages/js-moi-logic/lib.cjs',
-    '../../packages/js-moi-bip39/lib.cjs',
+    '../../packages/js-moi-identifiers/lib.cjs',
     '../../packages/js-moi-hdnode/lib.cjs',
+    '../../packages/js-moi-bip39/lib.cjs',
     '../../packages/js-moi-wallet/lib.cjs',
-    '../../packages/js-moi-utils/lib.cjs'
+    '../../packages/js-moi-signer/lib.cjs',
+    '../../packages/js-moi-providers/lib.cjs/provider',
+    '../../packages/js-moi-providers/lib.cjs/transport',
+    '../../packages/js-moi-providers/lib.cjs/utils',
+    '../../packages/js-moi-manifest/lib.cjs',
+    '../../packages/js-moi-logic/lib.cjs',
+    '../../packages/js-moi-utils/lib.cjs',
+
 ]
 primary_domain = 'js'
 
 templates_path = ['_templates']
 exclude_patterns = []
-
+autodoc_default_flags = ['members', 'undoc-members' ]
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 

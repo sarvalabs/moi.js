@@ -4,8 +4,22 @@
   "description": "This package enables users to sign and verify messages in their applications.",
   "main": "./lib.cjs/index.js",
   "module": "./lib.esm/index.js",
+  "exports": {
+    ".": {
+      "import": "./lib.esm/index.js",
+      "require": "./lib.cjs/index.js"
+    }
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build:cjs": "tsc -p tsconfig.build.json --outDir ./lib.cjs",
+    "watch:cjs": "tsc -p tsconfig.build.json --outDir ./lib.cjs --watch",
+    "build:esm": "tsc -p tsconfig.build.json --outDir ./lib.esm --module ESNext --moduleResolution Bundler",
+    "watch:esm": "tsc -p tsconfig.build.json --outDir ./lib.esm --module ESNext --moduleResolution Bundler --watch",
+    "watch": "npm run watch:cjs & npm run watch:esm",
+    "build": "npm run build:cjs && npm run build:esm",
+    "check-types": "tsc --noEmit",
+    "clean": "rm -rf ./lib.cjs ./lib.esm",
+    "clean:node_modules": "rm -rf node_modules"
   },
   "homepage": "https://docs.moi.technology/docs/build/packages/js-moi-sdk",
   "repository": {
@@ -23,10 +37,10 @@
   "author": "Sarva Labs Inc. & MOI Protocol Developers",
   "license": "Apache-2.0 OR MIT",
   "dependencies": {
+    "@noble/hashes": "^1.7.1",
+    "@noble/secp256k1": "^1.7.1",
+    "js-moi-identifiers": "^0.6.0",
     "js-moi-providers": "^0.6.0",
-    "js-moi-utils": "^0.6.0",
-    "buffer": "^6.0.3",
-    "@noble/hashes": "^1.1.5",
-    "@noble/secp256k1": "^1.7.1"
+    "js-moi-utils": "^0.6.0"
   }
 }
