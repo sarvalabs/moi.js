@@ -14,68 +14,44 @@
 [![pulls count](https://img.shields.io/github/issues-pr/sarvalabs/js-moi-sdk?style=for-the-badge&color=brightgreen)][pullslink]
 ![test status](https://img.shields.io/github/actions/workflow/status/sarvalabs/js-moi-sdk/test.yml?label=test&style=for-the-badge)
 
-
 # js-moi-sdk
 
 **js-moi-sdk** is a Javascript/Typescript implementation of a feature-rich library designed to seamlessly interact with the MOI Protocol and its extensive ecosystem. It provides a convenient interface for interacting with the MOI protocol, allowing developers to create, sign, and send interactions, retrieve account balances, access interaction history, and more.
 
 ## Installation
+
 Install the latest [release](https://github.com/sarvalabs/js-moi-sdk/releases) using the following command.
 
 ```sh
 npm install js-moi-sdk
 ```
 
+```sh
+yarn add js-moi-sdk
+```
+
+```sh
+pnpm add js-moi-sdk
+```
+
 ## Usage
 
 ```javascript
-    import { JsonRpcProvider } from "js-moi-sdk";
-
-    (async() => {
-        const provider = new JsonRpcProvider("http://localhost:1600");
-        const address  = "0xf350520ebca8c09efa19f2ed13012ceb70b2e710241748f4ac11bd4a9b43949b";
-        const tesseract = await provider.getTesseract(address, true);
-        console.log(tesseract);
-    })()
-
-    // Output:
-    /*
-        {
-            "header": {
-                "address": "0xf350520ebca8c09efa19f2ed13012ceb70b2e710241748f4ac11bd4a9b43949b",
-                "prev_hash": "0x034e75e7d8b2910004e70d6d45157166e87fb1d47485248edf8919108179307e",
-                "height": "0x1",
-                "fuel_used": "0x64",
-                "fuel_limit": "0x3e8",
-                ...
-            },
-            "body": {
-                "state_hash": "0x82543da922babd1c32b4856edd44a4bf5881edc3714cfe90b6d1576e00164aee",
-                "context_hash": "0xa1058908a4db1594632be49790b24211cd4920a0f27b3d2b876808f910b3e320",
-                "interaction_hash": "0x8aab5bc0817393d2ea163482c13ccc0f8f3e01cef0c889b8b3cffb51e4d76894",
-                "receipt_hash": "0x3e35a1f481df15da518ef6821f7b6f340f74f4f9c3f3eb30b15944ffea144f75",
-                ...
-            },
-            "ixns": [
-                {
-                    "type": 3,
-                    "nonce": "0x0",
-                    "sender": "0xf350520ebca8c09efa19f2ed13012ceb70b2e710241748f4ac11bd4a9b43949b",
-                    "receiver": "0x0000000000000000000000000000000000000000000000000000000000000000",
-                    "payer": "0x0000000000000000000000000000000000000000000000000000000000000000",
-                    ...
-                    "hash": "0x7750a0f1c848e05f1e52204e464af0d9d2f06470117e9187bb3643216c4c4ee9"
-                }
-            ],
-            "seal": "0x0460afdac7733765afa6410e58ebe0d69d484dfe021fba989438c51c69c078d6677446f179176681f005c0d755979bf81c090e02fdf8544bc618463e86c2778b7764b90c813f58a5965a47c5572bcf5784743e4c6c425e4bfa0f18b043e9aff21183",
-            "hash": "0xd343a7336df38590b47e5b20cb65940f463c358a08cded7af7cd6cde63a5575f"
-        }
-    */
+    import { HttpProvider } from "js-moi-sdk";
+   
+    const provider = new HttpProvider("...");
+    const version = await provider.request("moi.Protocol", {
+         modifier: { extract: "version" }
+    });
+   
+    console.log(response);
+   
+    >>> { jsonrpc: "2.0", id: "2fb48ce4-3d38-45e4-87a5-0aa9d3d70299", result: "0.12.0" }
 ```
 
 ## Sub Packages
 
-The **js-moi-sdk** package consists of several sub-packages, each offering independent functionality that can be utilized separately to enhance your development experience. 
+The **js-moi-sdk** package consists of several sub-packages, each offering independent functionality that can be utilized separately to enhance your development experience.
 
 - [js-moi-constants](https://github.com/sarvalabs/js-moi-sdk/tree/main/packages/js-moi-constants) This package includes common constants used within the js-moi-sdk ecosystem. These constants provide predefined values for various aspects of MOI, making it easier to work with the protocol.
 
@@ -95,15 +71,20 @@ The **js-moi-sdk** package consists of several sub-packages, each offering indep
 
 - [js-moi-utils](https://github.com/sarvalabs/js-moi-sdk/tree/main/packages/js-moi-utils) This package offers a comprehensive set of tools and functions to enhance development with MOI. It provides utility functions that simplify common tasks, making your development experience smoother and more efficient.
 
+- [js-moi-identifier](https://github.com/sarvalabs/js-moi-sdk/tree/main/packages/js-moi-identifier) This package provides utils for working with various identifiers used in the MOI ecosystem. It offers functions for getting and setting identifiers, as well as validating and formatting them according to the MOI standard.
+
 ## Contributing
+
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
 dual licensed as below, without any additional terms or conditions.
 
 ## License
+
 &copy; 2023 Sarva Labs Inc. & MOI Protocol Developers.
 
 This project is licensed under either of
+
 - [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0) ([`LICENSE-APACHE`](LICENSE-APACHE))
 - [MIT license](https://opensource.org/licenses/MIT) ([`LICENSE-MIT`](LICENSE-MIT))
 

@@ -1,33 +1,40 @@
 /**
- * This code is based on the bitcoinjs/bip39 by Wei Lu and Danieal Cousens
- * Modifications have been made to adapt it to the needs of js-moi-bip39
- * including enhancements for browser compatibility and TypeScript conversion.
- *
- * Original module available at: https://github.com/bitcoinjs/bip39
- * Modified version available at: https://github.com/sarvalabs/js-moi-sdk/tree/main/packages/js-moi-bip39
- *
- * Copyright (c) 2014, Wei Lu <luwei.here@gmail.com> and Daniel Cousens <email@dcousens.com>
- * Repository ISC license details can be found at https://github.com/bitcoinjs/bip39/blob/master/LICENSE
- *
- **/
-import { Buffer } from "buffer";
-/**
  * Synchronously convert a mnemonic to a seed.
  *
  * @param {string} mnemonic - The mnemonic phrase.
  * @param {string} [password] - The optional password.
- * @returns {Buffer} The generated seed.
+ * @returns {Uint8Array} The generated seed.
+ *
+ * @example
+ * import { mnemonicToSeedSync } from "js-moi-sdk";
+ *
+ * const mnemonic = "abandon hair ...";
+ * const seed = mnemonicToSeedSync(mnemonic);
+ *
+ * console.log(seed);
+ *
+ * >> Uint8Array(64) [ 0, 1, 2, ... ]
  */
-export declare const mnemonicToSeedSync: (mnemonic: string, password?: string) => Buffer;
+export declare const mnemonicToSeedSync: (mnemonic: string, password?: string) => Uint8Array;
 /**
  * Asynchronously convert a mnemonic to a seed.
  *
  * @param {string} mnemonic - The mnemonic phrase.
  * @param {string} [password] - The optional password.
- * @returns {Promise<Buffer>} The generated seed.
+ * @returns {Promise<Uint8Array>} The generated seed.
  * @throws {Error} If an error occurs during the conversion.
+ *
+ * @example
+ * import { mnemonicToSeed } from "js-moi-sdk";
+ *
+ * const mnemonic = "abandon hair ...";
+ * const seed = await mnemonicToSeed(mnemonic);
+ *
+ * console.log(seed);
+ *
+ * >> Uint8Array(64) [ 0, 1, 2, ... ]
  */
-export declare const mnemonicToSeed: (mnemonic: string, password?: string) => Promise<Buffer>;
+export declare const mnemonicToSeed: (mnemonic: string, password?: string) => Promise<Uint8Array>;
 /**
  * Convert a mnemonic to its corresponding entropy value.
  *
@@ -35,17 +42,37 @@ export declare const mnemonicToSeed: (mnemonic: string, password?: string) => Pr
  * @param {string[]} [wordlist] - The optional wordlist.
  * @returns {string} The corresponding entropy.
  * @throws {Error} If the mnemonic is invalid or a wordlist is required but not found.
+ *
+ * @example
+ * import { mnemonicToEntropy } from "js-moi-sdk";
+ *
+ * const mnemonic = "abandon hair ...";
+ * const entropy = mnemonicToEntropy(mnemonic);
+ *
+ * console.log(entropy);
+ *
+ * >> "6ce1535a6fdd...ae6f27fa0835b7"
  */
 export declare const mnemonicToEntropy: (mnemonic: string, wordlist?: string[]) => string;
 /**
  * Convert entropy to its corresponding mnemonic.
  *
- * @param {Buffer|string} entropy - The entropy value or buffer.
+ * @param {Uint8Array|string} entropy - The entropy value.
  * @param {string[]} [wordlist] - The optional wordlist.
  * @returns {string} The corresponding mnemonic phrase.
  * @throws {Error} If the entropy is invalid or a wordlist is required but not found.
+ *
+ * @example
+ * import { entropyToMnemonic } from "js-moi-sdk";
+ *
+ * const entropy = "6ce1535a6fdd...ae6f27fa0835b7";
+ * const mnemonic = entropyToMnemonic(entropy);
+ *
+ * console.log(mnemonic);
+ *
+ * >> "abandon hair ..."
  */
-export declare const entropyToMnemonic: (entropy: Buffer | string, wordlist?: string[]) => string;
+export declare const entropyToMnemonic: (entropy: Uint8Array | string, wordlist?: string[]) => string;
 /**
  * Generate a mnemonic phrase with the specified strength (in bits).
  *
@@ -54,14 +81,33 @@ export declare const entropyToMnemonic: (entropy: Buffer | string, wordlist?: st
  * @param {string[]} [wordlist] - The optional wordlist.
  * @returns {string} The generated mnemonic phrase.
  * @throws {TypeError} If the strength is not divisible by 32.
+ *
+ * @example
+ * import { generateMnemonic } from "js-moi-sdk";
+ *
+ * const mnemonic = generateMnemonic();
+ *
+ * console.log(mnemonic);
+ *
+ * >> "abandon hair ..."
  */
-export declare const generateMnemonic: (strength?: number, rng?: (size: number) => Buffer, wordlist?: string[]) => string;
+export declare const generateMnemonic: (strength?: number, rng?: (size: number) => Uint8Array, wordlist?: string[]) => string;
 /**
  * Validate a mnemonic phrase.
  *
  * @param {string} mnemonic - The mnemonic phrase to validate.
  * @param {string[]} [wordlist] - The optional wordlist.
  * @returns {boolean} True if the mnemonic is valid, false otherwise.
+ *
+ * @example
+ * import { validateMnemonic } from "js-moi-sdk";
+ *
+ * const mnemonic = "abandon hair ...";
+ * const isValid = validateMnemonic(mnemonic);
+ *
+ * console.log(isValid);
+ *
+ * >> true
  */
 export declare const validateMnemonic: (mnemonic: string, wordlist?: string[]) => boolean;
 /**
@@ -69,6 +115,15 @@ export declare const validateMnemonic: (mnemonic: string, wordlist?: string[]) =
  *
  * @returns {string} The language code of the default wordlist.
  * @throws {Error} If the default wordlist is not set.
+ *
+ * @example
+ * import { getDefaultWordlist } from "js-moi-sdk";
+ *
+ * const wordlist = getDefaultWordlist();
+ *
+ * console.log(wordlist);
+ *
+ * >> "english"
  */
 export declare const getDefaultWordlist: () => string;
 //# sourceMappingURL=bip39.d.ts.map

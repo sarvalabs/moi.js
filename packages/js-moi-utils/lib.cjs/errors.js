@@ -22,11 +22,12 @@ var ErrorCode;
     ErrorCode["PROPERTY_NOT_DEFINED"] = "ERROR_PROPERTY_NOT_DEFINED";
     ErrorCode["CALL_EXCEPTION"] = "ERROR_CALL_EXCEPTION";
     ErrorCode["INSUFFICIENT_FUNDS"] = "ERROR_INSUFFICIENT_FUNDS";
-    ErrorCode["NONCE_EXPIRED"] = "ERROR_NONCE_EXPIRED";
+    ErrorCode["SEQUENCE_EXPIRED"] = "ERROR_NONCE_EXPIRED";
     ErrorCode["INTERACTION_UNDERPRICED"] = "ERROR_INTERACTION_UNDERPRICED";
     ErrorCode["UNPREDICTABLE_FUEL_LIMIT"] = "ERROR_UNPREDICTABLE_FUEL_LIMIT";
     ErrorCode["ACTION_REJECTED"] = "ERROR_ACTION_REJECTED";
     ErrorCode["INVALID_SIGNATURE"] = "ERROR_INVALID_SIGNATURE";
+    ErrorCode["NOT_FOUND"] = "ERROR_NOT_FOUND";
 })(ErrorCode || (exports.ErrorCode = ErrorCode = {}));
 /**
  * CustomError class that extends the Error class.
@@ -50,8 +51,8 @@ class CustomError extends Error {
     toString() {
         const messageDetails = Object.entries(this.params)
             .map(([key, value]) => `${key}=${serializeValue(value)}`)
-            .join(', ');
-        const errorMessageStack = messageDetails ? ` (${messageDetails})` : '';
+            .join(", ");
+        const errorMessageStack = messageDetails ? ` (${messageDetails})` : "";
         return `${this.reason}${errorMessageStack}`;
     }
 }
@@ -68,7 +69,7 @@ class ErrorUtils {
      * @param {ErrorParams} params - The parameters of the error.
      * @throws {CustomError} - Throws a CustomError.
      */
-    static throwError(message, code = ErrorCode.UNKNOWN_ERROR, params = {}) {
+    static throwError(message, code, params = {}) {
         const error = new CustomError(message, code, params);
         if (Error.captureStackTrace) {
             Error.captureStackTrace(error, ErrorUtils.throwError);

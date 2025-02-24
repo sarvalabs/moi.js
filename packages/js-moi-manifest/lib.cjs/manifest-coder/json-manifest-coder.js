@@ -76,7 +76,7 @@ class JsonManifestCoder extends base_manifest_coder_1.BaseManifestCoder {
     serializeElement(element) {
         const polorizer = new js_polo_1.Polorizer();
         polorizer.polorizeInteger(element.ptr);
-        polorizer.polorize(element.deps, schema_1.Schema.PISA_DEPS_SCHEMA);
+        polorizer.polorize(element.deps ?? null, schema_1.Schema.PISA_DEPS_SCHEMA);
         polorizer.polorizeString(element.kind);
         const config = JsonManifestCoder.SCHEMA_CONFIG[element.kind];
         if (config == null) {
@@ -129,7 +129,7 @@ class JsonManifestCoder extends base_manifest_coder_1.BaseManifestCoder {
     /**
      * Serializes a given LogicManifest.Manifest object into a POLO Uint8Array.
      *
-     * @param {LogicManifest.Manifest} manifest - The manifest object to be serialized.
+     * @param {LogicManifest} manifest - The manifest object to be serialized.
      * @returns {Uint8Array} The POLO serialized manifest as a Uint8Array.
      * @throws {Error} If the manifest is invalid.
      */

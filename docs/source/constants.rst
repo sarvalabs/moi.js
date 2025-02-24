@@ -1,8 +1,5 @@
-=========
 Constants
 =========
-
---------------------------------------------------------------------------------
 
 The constants module contains the following constant variables.
 
@@ -13,12 +10,11 @@ js-moi-sdk package.
 
 .. code-block:: javascript
 
-    // Example
-    import * as moi from "js-moi-sdk";
+    import { VERSION } from "js-moi-sdk";
 
-    console.log(moi.VERSION)
+    console.log(VERSION)
 
-    >> 0.6.0
+    >> "0.6.0"
 
 MOI Derivation Path
 -------------------
@@ -28,10 +24,9 @@ derivation process.
 
 .. code-block:: javascript
 
-    // Example
-    import * as moi from "js-moi-sdk";
+    import { MOI_DERIVATION_PATH } from "js-moi-sdk";
 
-    console.log(moi.MOI_DERIVATION_PATH)
+    console.log(MOI_DERIVATION_PATH)
 
     >> "m/44'/6174'/0'/0/0"
 
@@ -44,9 +39,8 @@ addresses.
 
 .. code-block:: javascript
 
-    // Example
-    import * as moi from "js-moi-sdk";
+    import { MOI_DERIVATION_BASE_PATH } from "js-moi-sdk";
 
-    console.log(moi.MOI_DERIVATION_BASE_PATH)
+    console.log(MOI_DERIVATION_BASE_PATH)
 
     >> "m/44'/6174'/0'/0"

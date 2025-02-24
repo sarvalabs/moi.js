@@ -1,1 +1,1 @@
-{"version":3,"file":"serialization-format.d.ts","sourceRoot":"","sources":["../../src.ts/manifest-coder/serialization-format.ts"],"names":[],"mappings":"AACA;;GAEG;AACH,oBAAY,mBAAmB;IAC3B,IAAI,SAAS;IACb,IAAI,SAAS;CAChB"}
+{"version":3,"file":"serialization-format.d.ts","sourceRoot":"","sources":["../../src.ts/manifest-coder/serialization-format.ts"],"names":[],"mappings":"AACA;;GAEG;AACH,oBAAY,mBAAmB;IAC3B,IAAI,SAAS;IACb,IAAI,SAAS;IACb,IAAI,SAAS;CAChB"}

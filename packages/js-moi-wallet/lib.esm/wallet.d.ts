@@ -1,173 +1,179 @@
-import { Buffer } from "buffer";
-import { AbstractProvider, InteractionObject, InteractionRequest } from "js-moi-providers";
+import { type ExecuteIx } from "js-moi-providers";
 import { SigType, Signer } from "js-moi-signer";
+import { type Hex, type InteractionRequest } from "js-moi-utils";
+import { Identifier } from "js-moi-identifiers";
 import { Keystore } from "../types/keystore";
+import { FromMnemonicOptions, type WalletOption } from "../types/wallet";
 export declare enum CURVE {
     SECP256K1 = "secp256k1"
 }
 /**
  * A class representing a wallet that can sign interactions.
  *
- * The Wallet implements the Signer API and can be used anywhere a [Signer](https://js-moi-sdk.docs.moi.technology/signer)
- * is expected and has all the required properties.
- *
- * @example
- * // creating a wallet from mnemonic
- * const wallet = await Wallet.fromMnemonic("hollow appear story text start mask salt social child ...");
- *
- * @example
- * // creating a wallet from keystore
- * const keystore = { ... }
- * const wallet = Wallet.fromKeystore(keystore, "password");
- *
- * @example
- * // Connecting a wallet to a provider
- * const wallet = await Wallet.fromMnemonic("hollow appear story text start mask salt social child ...");
- * const provider = new VoyagerProvider("babylon");
- *
- * wallet.connect(provider);
- *
- * @docs https://js-moi-sdk.docs.moi.technology/hierarchical-deterministic-wallet
+ * The Wallet implements the Signer API and can be used anywhere a
+ * `Signer` is expected and has all the required properties.
  */
 export declare class Wallet extends Signer {
-    constructor(key: Buffer | string, curve: string);
-    /**
-     * Checks if the wallet is initialized.
-     *
-     * @returns {boolean} true if the wallet is initialized, false otherwise.
-     */
-    isInitialized(): boolean;
+    private readonly key_index;
+    constructor(pKey: Uint8Array | string, curve: CURVE, options?: WalletOption);
     /**
      * Generates a keystore file from the wallet's private key, encrypted with a password.
      *
      * @param {string} password Used for encrypting the keystore data.
-     * @returns {Keystore} The generated keystore object.
-     * @throws {Error} if the wallet is not initialized or loaded, or if there
-     * is an error generating the keystore.
+     * @returns {Promise<Keystore>} A promise that resolves to the keystore.
      */
-    generateKeystore(password: string): Keystore;
+    generateKeystore(password: string): Promise<Keystore>;
     /**
-     * Private key associated with the wallet.
+     * Retrieves the private key associated with the wallet.
      *
-     * @throws {Error} if the wallet is not loaded or initialized.
-     * @readonly
+     * @returns {Promise<string>} A promise that resolves to the private key
      */
-    get privateKey(): string;
+    getPrivateKey(): Promise<string>;
     /**
      * Retrieves the mnemonic associated with the wallet.
      *
-     * @throws {Error} if the wallet is not loaded or initialized.
-     * @readonly
+     * @returns {Promise<string | undefined>} A promise that resolves to the mnemonic
      */
-    get mnemonic(): string;
+    getMnemonic(): Promise<string | undefined>;
     /**
-     * Public key associated with the wallet.
+     * Retrieves the public key associated with the wallet.
      *
-     * @throws {Error} if the wallet is not loaded or initialized.
-     * @readonly
+     * @returns {Promise<string>} A promise that resolves to the public key
      */
-    get publicKey(): string;
+    getPublicKey(): Promise<string>;
     /**
-     * Curve associated with the wallet.
+     * Retrieves the curve associated with the wallet.
      *
-     * @readonly
+     * @returns {Promise<CURVE>} A promise that resolves to the curve
      */
-    get curve(): string;
+    getCurve(): Promise<CURVE>;
     /**
-     * Retrieves the address associated with the wallet.
+     * Retrieves the identifier for the wallet.
      *
-     * @returns {string} The address as a string.
+     * @returns {Promise<Identifier>} A promise that resolves to the wallet's identifier.
      */
-    getAddress(): string;
+    getIdentifier(): Promise<Identifier>;
     /**
-     * Address associated with the wallet.
+     * Retrieves the key identifier.
      *
-     * @readonly
+     * @returns {Promise<number>} A promise that resolves to the key index.
      */
-    get address(): string;
-    /**
-     * Connects the wallet to the given provider.
-     *
-     * @param {AbstractProvider} provider - The provider to connect.
-     */
-    connect(provider: AbstractProvider): void;
+    getKeyId(): Promise<number>;
     /**
      * Signs a message using the wallet's private key and the specified
      * signature algorithm.
      *
      * @param {Uint8Array} message - The message to sign as a Uint8Array.
-     * @param {SigType} sigAlgo - The signature algorithm to use.
-     * @returns {string} The signature as a string.
-     * @throws {Error} if the signature type is unsupported or undefined, or if
-     * there is an error during signing.
-     */
-    sign(message: Uint8Array, sigAlgo: SigType): string;
-    /**
-     * Signs an interaction object using the wallet's private key and the
-     * specified signature algorithm. The interaction object is serialized
-     * into POLO bytes before signing.
-     *
-     * @param {InteractionObject} ixObject - The interaction object to sign.
-     * @param {SigType} sigAlgo - The signature algorithm to use.
-     * @returns {InteractionRequest} The signed interaction request containing
-     * the serialized interaction object and the signature.
-     * @throws {Error} if there is an error during signing or serialization.
-     */
-    signInteraction(ixObject: InteractionObject, sigAlgo: SigType): InteractionRequest;
-    /**
-     * Initializes the wallet from a provided mnemonic.
-     *
-     * @param {string} mnemonic - The mnemonic to initialize the wallet with.
-     * @param {string | undefined} path - The derivation path to use for key generation. (optional)
-     * @param {string[] | undefined} wordlist - The wordlist to use for mnemonic generation. (optional)
-     *
-     * @returns {Promise<Wallet>} a promise that resolves to a `Wallet` instance.
-     * @throws {Error} if there is an error during initialization.
+     * @param {SigType} sig - The signature algorithm to use.
+     * @returns {string} A promise that resolves to the signature as a hex string.
+     * @throws {Error} if the signature type is unsupported or undefined, or if there is an error during signing.
      *
      * @example
-     * // Initializing a wallet from mnemonic
-     * const mnemonic = "hollow appear story text start mask salt social child ..."
-     * const wallet = await Wallet.fromMnemonic(mnemonic);
+     * import { encodeText, Wallet } from "js-moi-sdk";
      *
-     * @example
-     * // Initializing a wallet from mnemonic with custom path
-     * const mnemonic = "hollow appear story text start mask salt social child ...";
-     * const path = "m/44'/60'/0'/0/0";
-     * const wallet = await Wallet.fromMnemonic(mnemonic, path);
+     * const wallet = await Wallet.createRandom();
+     * const message = "Hello, World!";
+     * const algorithm = wallet.signingAlgorithms.ecdsa_secp256k1;
+     *
+     * const signature = await wallet.sign(encodeText(message), algorithm);
+     *
+     * console.log(signature);
+     *
+     * >> "0x014730450221009cb0e...bafc8b989602"
      */
-    static fromMnemonic(mnemonic: string, path?: string, wordlist?: string[]): Promise<Wallet>;
+    sign(message: Hex | Uint8Array, sig: SigType): Promise<Hex>;
     /**
-     * Initializes the wallet from a provided mnemonic synchronously.
+     * Signs an interaction request.
      *
-     * @param {string} mnemonic - The mnemonic to initialize the wallet with.
-     * @param {string | undefined} path - The derivation path to use for key generation. (optional)
-     * @param {string[] | undefined} wordlist - The wordlist to use for mnemonic generation. (optional)
-     *
-     * @returns {Promise<Wallet>} a promise that resolves to a `Wallet` instance.
-     * @throws {Error} if there is an error during initialization.
+     * @param {InteractionRequest} ix - The interaction request to be signed.
+     * @param {SigType} sig - The signature type to be used for signing.
+     * @returns {Promise<ExecuteIx>} A promise that resolves to an object containing the encoded interaction and its signatures.
+     * @throws {Error} Throws an error if the interaction request is invalid, the sender identifier does not match the signer identifier, or if signing the interaction fails.
      *
      * @example
-     * // Initializing a wallet from mnemonic
-     * const mnemonic = "hollow appear story text start mask salt social child ..."
-     * const wallet = Wallet.fromMnemonicSync();
+     * import { AssetStandard, HttpProvider, OpType, Wallet } from "js-moi-sdk";
      *
-     * @example
-     * // Initializing a wallet from mnemonic with custom path
-     * const mnemonic = "hollow appear story text start mask salt social child ...";
-     * const path = "m/44'/60'/0'/0/0";
-     * const wallet = Wallet.fromMnemonicSync(mnemonic, path);
+     * const host = "https://voyage-rpc.moi.technology/babylon/";
+     * const provider = new HttpProvider(host);
+     * const wallet = await Wallet.createRandom();
+     * const identifier = await wallet.getIdentifier();
+     * const algorithm = wallet.signingAlgorithms.ecdsa_secp256k1;
+     * const request = {
+     *     sender: {
+     *         address: identifier.toHex(),
+     *         key_id: 0,
+     *         sequence_id: 0,
+     *     },
+     *     fuel_price: 1,
+     *     fuel_limit: 100,
+     *     operations: [
+     *         {
+     *             type: OpType.AssetCreate,
+     *             payload: {
+     *                 standard: AssetStandard.MAS0,
+     *                 supply: 1000000,
+     *                 symbol: "DUMMY",
+     *             },
+     *         },
+     *     ],
+     * };
+     *
+     * wallet.connect(provider);
+     * const signedRequest = await wallet.signInteraction(request, algorithm);
      */
-    static fromMnemonicSync(mnemonic: string, path?: string, wordlist?: string[]): Wallet;
+    signInteraction(ix: InteractionRequest, sig: SigType): Promise<ExecuteIx>;
     /**
-     * Initializes the wallet from a provided keystore.
+     * Create a wallet from a mnemonic.
      *
-     * @param {string} keystore - The keystore to initialize the wallet with.
-     * @param {string} password - The password used to decrypt the keystore.
+     * @param {string} mnemonic - The mnemonic to create the wallet from.
+     * @param {string} path - The optional derivation path to use.
+     * @param {FromMnemonicOptions | undefined} options - The optional options to use.
+     *
+     * @returns {Promise<Wallet>} A promise that resolves to a `Wallet` instance.
+     */
+    static fromMnemonic(mnemonic: string, path?: string, options?: FromMnemonicOptions): Promise<Wallet>;
+    /**
+     * Create a wallet from mnemonic
+     *
+     * @param {string} mnemonic - The mnemonic to create the wallet from.
+     * @param {FromMnemonicOptions | undefined} options - The optional derivation path to use.
+     *
+     * @returns {Promise<Wallet>} A promise that resolves to a `Wallet` instance.
+     */
+    static fromMnemonic(mnemonic: string, options?: FromMnemonicOptions): Promise<Wallet>;
+    /**
+     * Create a wallet from mnemonic synchronously.
+     *
+     * @param {string} mnemonic - The mnemonic to create the wallet from.
+     * @param {string | undefined} path - The optional derivation path to use.
+     * @param {FromMnemonicOptions | undefined} options - The optional options to use.
      *
      * @returns {Wallet} a instance of `Wallet`.
      * @throws {Error} if there is an error during initialization.
      */
-    static fromKeystore(keystore: string, password: string): Wallet;
+    static fromMnemonicSync(mnemonic: string, path?: string, options?: FromMnemonicOptions): Wallet;
+    /**
+     * Create a wallet from mnemonic synchronously.
+     *
+     * @param {string} mnemonic - The mnemonic to create the wallet from.
+     * @param {FromMnemonicOptions | undefined} options - The optional options to use.
+     *
+     * @returns {Wallet} a instance of `Wallet`.
+     * @throws {Error} if there is an error during initialization.
+     */
+    static fromMnemonicSync(mnemonic: string, options?: FromMnemonicOptions): Wallet;
+    /**
+     * Creates a Wallet instance from a keystore JSON string and a password.
+     *
+     * @param {string} keystore - The keystore JSON string containing the encrypted private key.
+     * @param {string} password - The password to decrypt the keystore.
+     * @param {Provider} provider - (Optional) The provider to be used by the wallet.
+     *
+     * @returns A Wallet instance.
+     *
+     * @throws Will throw an error if the wallet cannot be loaded from the keystore.
+     */
+    static fromKeystore(keystore: string, password: string, option?: WalletOption): Wallet;
     /**
      * Generates a random mnemonic and initializes the wallet from it.
      *
@@ -175,7 +181,7 @@ export declare class Wallet extends Signer {
      *
      * @throws {Error} if there is an error generating the random mnemonic.
      */
-    static createRandom(): Promise<Wallet>;
+    static createRandom(option?: WalletOption): Promise<Wallet>;
     /**
      * Generates a random mnemonic and initializes the wallet from it.
      *
@@ -183,6 +189,6 @@ export declare class Wallet extends Signer {
      *
      * @throws {Error} if there is an error generating the random mnemonic.
      */
-    static createRandomSync(): Wallet;
+    static createRandomSync(option?: WalletOption): Wallet;
 }
 //# sourceMappingURL=wallet.d.ts.map

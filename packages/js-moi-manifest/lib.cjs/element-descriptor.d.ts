@@ -1,81 +1,80 @@
-import type { LogicManifest } from "../types/manifest";
-import { ContextStateMatrix } from "./context-state-matrix";
+import { Element, ElementType, type ElementData, type LogicElement } from "js-moi-utils";
+import type { EventDef, MethodDef, RoutineDef } from "./types/manifest";
 /**
  * This class represents a descriptor for elements in the logic manifest.
  */
 export declare class ElementDescriptor {
-    protected stateMatrix: ContextStateMatrix;
-    protected elements: Map<number, LogicManifest.Element>;
-    protected callSites: Map<string, LogicManifest.CallSite>;
+    protected elements: Map<LogicElement["ptr"], LogicElement>;
+    protected callSites: Map<string, RoutineDef>;
     protected classDefs: Map<string, number>;
-    protected methodDefs: Map<string, LogicManifest.MethodDef>;
-    protected eventsDefs: Map<string, LogicManifest.EventDef>;
-    constructor(elements: LogicManifest.Element[]);
+    protected methodDefs: Map<string, MethodDef>;
+    protected eventsDefs: Map<string, EventDef>;
+    protected stateDef: Map<string, number>;
+    constructor(elements: LogicElement[]);
     /**
-     * Retrieves the state matrix associated with the ElementDescriptor.
+     * Retrieves a LogicElement from the elements map using the provided pointer.
      *
-     * @returns {ContextStateMatrix} The state matrix.
+     * @param ptr - The pointer to the LogicElement to retrieve.
+     * @returns The LogicElement associated with the provided pointer.
+     *
+     * @throws Will throw an error if the element with the specified pointer is not found.
      */
-    getStateMatrix(): ContextStateMatrix;
+    getElement(ptr: number): LogicElement;
     /**
-     * Retrieves the map of elements associated with the ElementDescriptor.
+     * Retrieves the map of logic elements.
      *
-     * @returns {Map<number, LogicManifest.Element>} The elements map.
+     * @returns {Map<number, LogicElement>} A map where the keys are numbers and the values are LogicElement instances.
      */
-    getElements(): Map<number, LogicManifest.Element>;
+    getElements(): Map<number, LogicElement>;
     /**
-     * Retrieves the map of call sites associated with the ElementDescriptor.
+     * Retrieves the call sites associated with this manifest.
      *
-     * @returns {Map<string, CallSite>} The call sites map.
+     * @returns {Map<string, RoutineDef>} A map where the keys are strings representing the call site identifiers and the values are `RoutineDef` objects defining the routines.
      */
-    getCallsites(): Map<string, LogicManifest.CallSite>;
+    getCallsites(): Map<string, RoutineDef>;
     /**
-     * Retrieves the map of class definitions associated with the ElementDescriptor.
+     * Retrieves the class definitions.
      *
-     * @returns {Map<string, number>} The class definitions map.
+     * @returns {Map<string, number>} A map where the keys are class names (strings) and the values are class definitions (numbers).
      */
     getClassDefs(): Map<string, number>;
-    getEvents(): Map<string, LogicManifest.EventDef>;
+    /**
+     * Retrieves the map of event definitions.
+     *
+     * @returns {Map<string, EventDef>} A map where the keys are event names and the values are event definitions.
+     */
+    getEvents(): Map<string, EventDef>;
     /**
      * Retrieves the map of method definitions associated with the ElementDescriptor.
      *
      * @returns {Map<string, MethodDef>} The method definitions map.
      */
-    getMethodDefs(): Map<string, LogicManifest.MethodDef>;
+    getMethodDefs(): Map<string, MethodDef>;
     /**
-     * Retrieves the methods of a class based on the given class name.
+     * Retrieves the methods of a specified class.
      *
-     * @param {string} className - The name of the class.
-     * @returns {Map<string, LogicManifest.Method>} The methods of the class.
-     * @throws {Error} if the class name is invalid.
+     * @param className - The name of the class whose methods are to be retrieved.
+     * @returns A map where the keys are method names and the values are `ElementData` objects representing the methods.
+     * @throws Will throw an error if the class name is invalid.
      */
-    getClassMethods(className: string): Map<string, LogicManifest.Method>;
+    getClassMethods(className: string): Map<string, ElementData<ElementType.Method>>;
     /**
-     * Retrieves the element from the logic manifest based on the given
-     * routine name.
+     * Retrieves a routine element by its name.
      *
-     * @param {string} routineName - The name of the routine.
-     * @returns {LogicManifest.Element} The routine element.
-     * @throws {Error} if the routine name is invalid.
+     * @param name - The name of the routine element to retrieve.
+     * @returns The routine element associated with the given name.
+     * @throws Will throw an error if the routine name is not found.
      */
-    getRoutineElement(routineName: string): LogicManifest.Element;
+    getRoutineElement(name: string): Element<ElementType.Routine>;
     /**
-     * Retrieves the element from the logic manifest based on the given
-     * class name.
+     * Retrieves a class element by its name.
      *
-     * @returns {LogicManifest.Element} The class element.
-     * @throws {Error} if the class name is invalid.
+     * @param className - The name of the class to retrieve.
+     * @returns The class element associated with the given name.
+     * @throws Will throw an error if the class name is invalid
      */
-    getClassElement(className: string): LogicManifest.Element;
-    /**
-     * Retrieves the element from the logic manifest based on the given
-     * method name.
-     *
-     * @param {string} methodName - The name of the method.
-     * @returns {LogicManifest.Element} The method element.
-     * @throws {Error} if the method name is invalid.
-     */
-    getMethodElement(methodName: string): LogicManifest.Element;
+    getClassElement(className: string): Element<ElementType.Class>;
+    getMethodElement(methodName: string): Element<ElementType.Method>;
     /**
      * Retrieves the element from the logic manifest based on the given
      * event name.
@@ -85,6 +84,6 @@ export declare class ElementDescriptor {
      *
      * @throws {Error} if the event name is invalid.
      */
-    getEventElement(eventName: string): LogicManifest.Element<LogicManifest.Event>;
+    getEventElement(eventName: string): Element<ElementType.Event>;
 }
 //# sourceMappingURL=element-descriptor.d.ts.map

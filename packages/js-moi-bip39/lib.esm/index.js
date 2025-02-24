@@ -10,6 +10,6 @@
  * Repository ISC license details can be found at https://github.com/bitcoinjs/bip39/blob/master/LICENSE
  *
  **/
-export * from "./bip39";
-export * from "./_wordlists";
+export { _default, wordlists } from "./_wordlists";
+export { entropyToMnemonic, generateMnemonic, getDefaultWordlist, mnemonicToEntropy, mnemonicToSeed, mnemonicToSeedSync, validateMnemonic } from "./bip39";
 //# sourceMappingURL=index.js.map

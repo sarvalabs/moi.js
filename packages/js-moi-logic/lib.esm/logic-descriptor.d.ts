@@ -1,86 +1,90 @@
-import { LogicManifest } from "js-moi-manifest";
-import { Signer } from "js-moi-signer";
-import { LogicBase } from "./logic-base";
-import { LogicId } from "./logic-id";
-export declare enum EngineKind {
-    PISA = "PISA",
-    MERU = "MERU"
-}
+import type { Identifier } from "js-moi-identifiers";
+import { ElementDescriptor, ManifestCoder, ManifestCoderFormat } from "js-moi-manifest";
+import { ElementType, LogicState, type Element, type Hex, type LogicManifest } from "js-moi-utils";
 /**
- * Abstract class representing a logic descriptor, which provides information
- about a logic.
+ * The `LogicDescriptor` class represents a logic descriptor.
+ *
+ * It provides methods to get information about the logic and its elements.
  */
-export declare abstract class LogicDescriptor extends LogicBase {
-    protected logicId: LogicId;
-    protected manifest: LogicManifest.Manifest;
-    protected encodedManifest: string;
-    protected engine: EngineKind;
-    protected sealed: boolean;
-    protected assetLogic: boolean;
-    constructor(logicId: string, manifest: LogicManifest.Manifest, signer: Signer);
+export declare class LogicDescriptor extends ElementDescriptor {
+    protected logicId?: Identifier;
+    private readonly manifest;
+    private coder?;
+    private state;
+    constructor(manifest: LogicManifest, logicId?: Identifier);
+    protected setLogicId(logicId: Identifier): void;
     /**
-     * Returns the logic id of the logic.
+     * Retrieves the engine from the logic manifest.
      *
-     * @returns {string} The logic id.
+     * @returns The engine specified in the logic manifest.
      */
-    getLogicId(): LogicId;
+    getEngine(): LogicManifest["engine"];
     /**
-     * Returns the logic execution engine type.
+     * Retrieves the syntax from the logic manifest.
      *
-     * @returns {EngineKind} The engine type.
+     * @returns The syntax specified in the logic manifest.
      */
-    getEngine(): EngineKind;
+    getSyntax(): LogicManifest["syntax"];
     /**
-     * Returns the logic manifest.
+     * Retrieves the logic ID.
      *
-     * @returns {LogicManifest.Manifest} The logic manifest.
+     * @returns The logic ID.
+     *
+     * @throws Will throw an error if the logic ID is not found.
      */
-    getManifest(): LogicManifest.Manifest;
+    getLogicId(): Promise<Identifier>;
     /**
-     * Returns the POLO encoded logic manifest.
+     * Checks if the logic is ephemeral.
      *
-     * @returns {string} The POLO encoded logic manifest.
+     * @returns `true` if the logic is ephemeral, `false` otherwise.
      */
-    getEncodedManifest(): string;
+    isEphemeral(): boolean;
     /**
-     * Checks if the logic is sealed.
+     * Checks if the logic is persistent.
      *
-     * @returns {boolean} True if the logic is sealed, false otherwise.
+     * @returns `true` if the logic is persistent, `false` otherwise.
      */
-    isSealed(): boolean;
+    isPersistent(): boolean;
     /**
-     * Checks if the logic represents an asset logic.
+     * Retrieves the instance manifest coder.
      *
-     * @returns {boolean} True if the logic is an representation of asset logic, false otherwise.
+     * @returns The manifest coder.
      */
-    isAssetLogic(): boolean;
+    getManifestCoder(): ManifestCoder;
     /**
-     * Checks if the logic allows interactions.
+     * Retrieves the logic manifest in the specified format.
      *
-     * @returns {boolean} True if the logic allows interactions, false otherwise.
+     * @param format - The format to retrieve the manifest in.
+     * @returns The logic manifest in the specified format.
      */
-    allowsInteractions(): boolean;
+    getManifest(format: ManifestCoderFormat.JSON): LogicManifest;
     /**
-     * Checks if the logic is stateful.
+     * Retrieves the logic manifest in the specified format.
      *
-     * @returns {boolean} True if the logic is stateful, false otherwise.
+     * @param format - The format to retrieve the manifest in.
+     * @returns The logic manifest in the specified format.
      */
-    isStateful(): boolean;
+    getManifest(format: ManifestCoderFormat.YAML): string;
     /**
-     * Checks if the logic has persistent state.
-     * @returns A tuple containing the pointer to the persistent state and a flag indicating if it exists.
+     * Retrieves the logic manifest in the specified format.
      *
-     @example
-     * const [ptr, exists] = logic.hasPersistentState();
+     * @param format - The format to retrieve the manifest in.
+     * @returns The logic manifest in the specified format.
      */
-    hasPersistentState(): [number, boolean];
+    getManifest(format: ManifestCoderFormat.POLO): Hex; /**
+     * Retrieves the logic manifest in the specified format.
+     *
+     * @param format - The format to retrieve the manifest in.
+     * @returns The logic manifest in the specified format.
+     */
     /**
-     * Checks if the logic has ephemeral state.
-     * @returns A tuple containing the pointer to the ephemeral state and a flag indicating if it exists.
+     * Retrieves the logic state element.
      *
-     * @example
-     * const [ptr, exists] = logic.hasEphemeralState();
+     * @param state - The logic state to retrieve the element for.
+     * @returns The logic state element.
+     *
+     * @throws Will throw an error if the state is not found.
      */
-    hasEphemeralState(): [number, boolean];
+    getStateElement(state: LogicState): Element<ElementType.State>;
 }
 //# sourceMappingURL=logic-descriptor.d.ts.map

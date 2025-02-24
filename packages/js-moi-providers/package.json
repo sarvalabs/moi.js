@@ -4,6 +4,10 @@
   "description": "Module to connect and interact with MOI network",
   "main": "./lib.cjs/index.js",
   "module": "./lib.esm/index.js",
+  "browser": {
+    "./lib.cjs/ws/ws.js": "./lib.cjs/provider/ws/ws-browser.js",
+    "./lib.esm/ws/ws.js": "./lib.esm/provider/ws/ws-browser.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -23,13 +27,13 @@
   "author": "Sarva Labs Inc. & MOI Protocol Developers",
   "license": "Apache-2.0 OR MIT",
   "dependencies": {
-    "cross-fetch": "^4.0.0",
     "events": "npm:events@^3.3.0",
-    "js-moi-manifest": "^0.6.0",
+    "js-moi-identifiers": "^0.6.0",
     "js-moi-utils": "^0.6.0",
-    "websocket": "^1.0.35"
+    "polo-schema": "^1.0.1",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@types/websocket": "^1.0.10"
+    "@types/ws": "^8.5.13"
   }
 }

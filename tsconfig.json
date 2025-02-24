@@ -8,6 +8,8 @@
         "moduleResolution": "NodeNext",
         "declaration": true,
         "pretty": true,
+        "strict": true,
+        "composite": true,
         "sourceMap": true,
         "outDir": "dist",
         "declarationMap": true,
@@ -19,7 +21,8 @@
         "experimentalDecorators": true,
         "noUnusedLocals": true,
         "incremental": true,
-        "tsBuildInfoFile": "dist/.tsbuildinfo"
+        "tsBuildInfoFile": "dist/.tsbuildinfo",
+        "skipLibCheck": true
     },
     "ts-node": {
         "esm": true
@@ -30,6 +33,12 @@
         },
         {
             "path": "./packages/js-moi-constants/tsconfig.esm.json"
+        },
+        {
+            "path": "./packages/js-moi-identifiers/tsconfig.esm.json"
+        },
+        {
+            "path": "./packages/js-moi-identifiers/tsconfig.cjs.json"
         },
         {
             "path": "./packages/js-moi-utils/tsconfig.cjs.json"
@@ -81,11 +90,11 @@
         },
         {
             "path": "./packages/js-moi/tsconfig.cjs.json"
-        }, 
+        },
         {
             "path": "./packages/js-moi/tsconfig.esm.json"
         }
     ],
-    "include": ["packages/**/*.ts"],
-    "exclude": ["node_modules", "**/__tests__/**" ,"dist"]
+    "include": ["packages/**/!(lib.cjs|lib.esm)/**/*.ts"],
+    "exclude": ["node_modules", "**/dist/**"]
 }

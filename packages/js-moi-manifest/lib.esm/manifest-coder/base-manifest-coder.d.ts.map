@@ -1,1 +1,1 @@
-{"version":3,"file":"base-manifest-coder.d.ts","sourceRoot":"","sources":["../../src.ts/manifest-coder/base-manifest-coder.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,sBAAsB,CAAC;AAE1D,8BAAsB,iBAAiB;IACnC,SAAS,CAAC,QAAQ,CAAC,QAAQ,EAAE,OAAO,GAAG,QAAQ,IAAI,aAAa,CAAC,QAAQ;CAW5E"}
+{"version":3,"file":"base-manifest-coder.d.ts","sourceRoot":"","sources":["../../src.ts/manifest-coder/base-manifest-coder.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,cAAc,CAAC;AAElD,8BAAsB,iBAAiB;IACnC,SAAS,CAAC,QAAQ,CAAC,QAAQ,EAAE,OAAO,GAAG,QAAQ,IAAI,aAAa;CAWnE"}

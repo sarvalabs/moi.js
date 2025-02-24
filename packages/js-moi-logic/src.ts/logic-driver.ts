@@ -1,175 +1,485 @@
-import { LogicManifest, ManifestCoder } from "js-moi-manifest";
-import { LogicPayload, Options } from "js-moi-providers";
-import { Signer } from "js-moi-signer";
-import { ErrorCode, ErrorUtils, defineReadOnly } from "js-moi-utils";
-import { LogicIxObject, LogicIxResponse, LogicIxResult } from "../types/interaction";
-import { Routines } from "../types/logic";
+import { Identifier, isIdentifier, LogicId } from "js-moi-identifiers";
+import { isPrimitiveType, ManifestCoder, ManifestCoderFormat, Schema } from "js-moi-manifest";
+import type { InteractionResponse, LogicMessageRequestOption, SimulateInteractionRequest, TimerOption } from "js-moi-providers";
+import type { Signer, SignerIx } from "js-moi-signer";
+import {
+    ElementType,
+    ErrorCode,
+    ErrorUtils,
+    generateStorageKey,
+    hexToBytes,
+    isHex,
+    LogicState,
+    OpType,
+    RoutineKind,
+    RoutineType,
+    StorageKey,
+    type Hex,
+    type InteractionRequest,
+    type IxOperation,
+    type LogicManifest,
+    type LogicMessage,
+} from "js-moi-utils";
+import { Depolorizer } from "js-polo";
 import { LogicDescriptor } from "./logic-descriptor";
-import { RoutineOption } from "./routine-options";
-import { EphemeralState, PersistentState } from "./state";
+import { SlotAccessorBuilder } from "./state/accessor-builder";
+import { StateAccessorBuilder } from "./state/state-accessor-builder";
+import type { CallsiteCallback, CallsiteOption, LogicCallsites, LogicDriverOption, StateAccessorFn } from "./types";
 
 /**
- * Represents a logic driver that serves as an interface for interacting with logics.
+ * It is class that is used to interact with the logic.
+ *
+ * It provides methods to interact with the logic, such
+ * as invoking callsites, deploying the logic, and retrieving logic storage.
+ *
+ * Inherit from `LogicDescriptor` class.
  */
-export class LogicDriver<T extends Record<string, (...args: any) => any> = any> extends LogicDescriptor {
-    public readonly routines: Routines<T> = {} as Routines<T>;
-    public readonly persistentState: PersistentState;
-    public readonly ephemeralState: EphemeralState;
+export class LogicDriver<TCallsites extends LogicCallsites = LogicCallsites> extends LogicDescriptor {
+    private signer: Signer;
 
-    constructor(logicId: string, manifest: LogicManifest.Manifest, arg: Signer) {
-        super(logicId, manifest, arg)
-        this.createState();
-        this.createRoutines();
+    public readonly endpoint: TCallsites;
+
+    private deployIxResponse?: InteractionResponse;
+
+    constructor(option: Omit<LogicDriverOption, "logicId"> & { logicId?: Identifier }) {
+        if (option.signer == null) {
+            ErrorUtils.throwError("Signer is required.", ErrorCode.INVALID_ARGUMENT);
+        }
+
+        super(option.manifest, option.logicId);
+
+        this.signer = option.signer;
+        this.endpoint = this.setupEndpoint();
     }
 
     /**
-     * Creates the persistent and ephemeral states for the logic driver, 
-     if available in logic manifest.
+     * Checks if the logic has been deployed.
+     *
+     * This method attempts to retrieve the logic ID. If the logic ID is successfully
+     * retrieved, it indicates that the logic has been deployed. If an error occurs
+     * during the retrieval, it is assumed that the logic has not been deployed.
+     *
+     * @returns A promise that resolves to `true` if the logic is deployed, otherwise `false`.
      */
-    private createState() {
-        const hasPersistance = this.stateMatrix.persistent();
-        const hasEphemeral = this.stateMatrix.ephemeral();
+    public async isDeployed() {
+        const logicId = await this.getLogicId().catch(() => null);
+        return logicId != null;
+    }
 
-        if(hasPersistance) {
-            const persistentState = new PersistentState(this, this.provider);
-            defineReadOnly(this, "persistentState", persistentState)
+    /**
+     * Retrieves the type of a callsite.
+     *
+     * @param callsite - The name of the callsite.
+     * @returns The type of the specified callsite.
+     */
+    public getCallsiteType(callsite: string) {
+        return this.getRoutineElement(callsite).data.kind;
+    }
+
+    /**
+     * Determines if the callsite is mutable based on its routine kind.
+     *
+     * @param callsite - The identifier of the callsite to check.
+     * @returns A boolean indicating whether the callsite is mutable.
+     */
+    public isCallsiteMutable(callsite: string) {
+        const kinds = [RoutineKind.Ephemeral, RoutineKind.Persistent];
+        const element = this.getRoutineElement(callsite);
+
+        return kinds.includes(element.data.mode);
+    }
+
+    private extractArgsAndOption(callsite: string, callsiteArguments: unknown[]) {
+        const element = this.getRoutineElement(callsite);
+        if (callsiteArguments.length < element.data.accepts.length) {
+            const callsiteSignature = `Invalid number of arguments: ${callsite}(${element.data.accepts.map((accept) => `${accept.label} ${accept.type}`).join(", ")})`;
+            ErrorUtils.throwArgumentError(callsiteSignature, "args", callsiteArguments);
         }
 
-        if(hasEphemeral) {
-            const ephemeralState = new EphemeralState(this, this.provider);
-            defineReadOnly(this, "ephemeralState", ephemeralState)
+        const option = <CallsiteOption | undefined>callsiteArguments.at(element.data.accepts.length);
+        const args = callsiteArguments.slice(0, element.data.accepts.length);
+
+        return { option, args };
+    }
+
+    /**
+     * Creates an interaction operation for the specified callsite.
+     *
+     * @param callsite - The name of the callsite.
+     * @param args - The arguments to pass to the callsite.
+     * @returns A promise that resolves to an interaction operation.
+     *
+     * @throws an error if the callsite is not present.
+     */
+    public async createIxOperation(
+        callsite: string,
+        args: unknown[]
+    ): Promise<IxOperation<OpType.LogicDeploy> | IxOperation<OpType.LogicInvoke> | IxOperation<OpType.LogicEnlist>> {
+        const routine = this.getRoutineElement(callsite);
+
+        if (routine.data.accepts.length !== args.length) {
+            ErrorUtils.throwError(`Invalid number of arguments for callsite "${callsite}".`, ErrorCode.INVALID_ARGUMENT);
+        }
+
+        const calldata = this.getManifestCoder().encodeArguments(callsite, ...args);
+        const callsiteType = this.getCallsiteType(callsite);
+
+        switch (callsiteType) {
+            case RoutineType.Deploy: {
+                return {
+                    type: OpType.LogicDeploy,
+                    payload: { manifest: this.getManifest(ManifestCoderFormat.POLO), callsite, calldata },
+                };
+            }
+
+            case RoutineType.Invoke:
+            case RoutineType.Enlist: {
+                const logicId = await this.getLogicId();
+                return {
+                    type: callsiteType === RoutineType.Invoke ? OpType.LogicInvoke : OpType.LogicEnlist,
+                    payload: { logic_id: logicId.toHex(), callsite, calldata },
+                };
+            }
+
+            default: {
+                ErrorUtils.throwError("Invalid routine type.", ErrorCode.INVALID_ARGUMENT);
+            }
         }
     }
 
     /**
-     * Creates an interface for executing routines defined in the logic manifest.
+     * Creates an interaction request for the specified callsite.
+     *
+     * @param method - name of the method to create the interaction request.
+     * @param callsite - name of the callsite.
+     * @param callsiteArguments - arguments to pass to the callsite.
+     * @param params - interaction request parameters.
      */
-    private createRoutines() {
-        const routines = {};
+    public async createIxRequest(
+        method: "moi.Simulate",
+        callsite: string,
+        callsiteArguments: unknown[],
+        params?: Omit<Partial<SignerIx<SimulateInteractionRequest>>, "operations">
+    ): Promise<SimulateInteractionRequest>;
+    /**
+     * Creates an interaction request for the specified callsite.
+     *
+     * @param method - name of the method to create the interaction request.
+     * @param callsite - name of the callsite.
+     * @param callsiteArguments - arguments to pass to the callsite.
+     * @param params - interaction request parameters.
+     */
+    public async createIxRequest(
+        method: "moi.Execute",
+        callsite: string,
+        callsiteArguments: unknown[],
+        params?: Omit<Partial<SignerIx<InteractionRequest>>, "operations">
+    ): Promise<InteractionRequest>;
+    /**
+     * Creates an interaction request for the specified callsite.
+     *
+     * @param method - name of the method to create the interaction request.
+     * @param callsite - name of the callsite.
+     * @param callsiteArguments - arguments to pass to the callsite.
+     * @param params - interaction request parameters.
+     */
+    public async createIxRequest(
+        method: "moi.Simulate" | "moi.Execute",
+        callsite: string,
+        callsiteArguments: unknown[],
+        params?: Omit<Partial<SignerIx<InteractionRequest>> | Partial<SignerIx<SimulateInteractionRequest>>, "operations">
+    ): Promise<SimulateInteractionRequest | InteractionRequest> {
+        const operation = await this.createIxOperation(callsite, callsiteArguments);
+        if (method === "moi.Simulate") {
+            return await this.signer.createIxRequest("moi.Simulate", {
+                ...params,
+                operations: [operation],
+            });
+        }
 
-        this.manifest.elements.forEach((element: LogicManifest.Element) => {
-            if (element.kind !== "routine") {
-                return;
+        return await this.signer.createIxRequest("moi.Execute", {
+            ...params,
+            operations: [operation],
+        });
+    }
+
+    /**
+     * Retrieves the logic ID associated with this instance. If the logic ID is already set, it returns the existing logic ID.
+     *
+     * - If the logic ID is not set but a deployment response is available, it processes the deployment response to extract and set the logic ID.
+     * - If the deployment response contains an error or an unexpected result type, it throws an appropriate error.
+     *
+     * @param timer a optional timer to wait for the result.
+     * @returns A promise that resolves to the logic ID.
+     *
+     * @throws If the logic id not deployed.
+     * @throws If error occurs during the deployment process.
+     */
+    public async getLogicId(timer?: TimerOption): Promise<Identifier> {
+        if (this.deployIxResponse != null) {
+            const results = await this.deployIxResponse.result(timer);
+            const result = results.at(0);
+
+            if (result?.type !== OpType.LogicDeploy) {
+                ErrorUtils.throwError("Expected result of logic deploy got something else.", ErrorCode.UNKNOWN_ERROR);
             }
 
-            const routine = element.data as LogicManifest.Routine;
+            const exception = ManifestCoder.decodeException(result.data.error);
 
-            if (!["invoke", "enlist"].includes(routine.kind)) {
-                return;
+            if (exception != null) {
+                ErrorUtils.throwError(exception.error, ErrorCode.CALL_EXCEPTION, exception);
             }
 
-            routines[routine.name] = async (...params: [...args: any[], options: RoutineOption | undefined]) => {
-                const argsLen =
-                    params.at(-1) && params.at(-1) instanceof RoutineOption
-                        ? params.length - 1
-                        : params.length;
+            this.setLogicId(new LogicId(result.data.logic_id));
+        }
 
-                if (routine.accepts && argsLen < routine.accepts.length) {
-                    ErrorUtils.throwError(
-                        "One or more required arguments are missing.",
-                        ErrorCode.INVALID_ARGUMENT
-                    );
+        return super.getLogicId();
+    }
+
+    private newCallsite(callsite: string) {
+        const isDeployerCallsite = this.getCallsiteType(callsite) === RoutineType.Deploy;
+
+        const callback: CallsiteCallback = async (...args: unknown[]) => {
+            const isDeployed = await this.isDeployed();
+
+            if (isDeployerCallsite && isDeployed) {
+                ErrorUtils.throwError(`Logic is already deployed or deploying.`);
+            }
+
+            if (!isDeployerCallsite && !isDeployed) {
+                ErrorUtils.throwError(`Logic is not deployed, deploy it first using deployer callsites.`);
+            }
+
+            const { option, args: callsiteArgs } = this.extractArgsAndOption(callsite, args);
+            if (!this.isCallsiteMutable(callsite)) {
+                const simulateIxRequest = await this.createIxRequest("moi.Simulate", callsite, callsiteArgs, option);
+                const simulation = await this.signer.simulate(simulateIxRequest);
+                const result = simulation.results.at(0);
+
+                if (result?.type !== OpType.LogicInvoke) {
+                    ErrorUtils.throwError("Expected LogicInvoke operation.", ErrorCode.UNKNOWN_ERROR);
                 }
 
-                const ixObject = this.createIxObject(routine, ...params);
+                const { error, outputs } = result.data;
+                const exception = ManifestCoder.decodeException(error);
 
-                if (!this.isMutableRoutine(routine)) {
-                    return await ixObject.unwrap();
+                if (exception != null) {
+                    ErrorUtils.throwError(exception.error, ErrorCode.CALL_EXCEPTION, exception);
                 }
 
-                return await ixObject.send();
-            };
-
-            routines[routine.name].isMutable = (): boolean => {
-                return this.isMutableRoutine(routine)
+                return this.getManifestCoder().decodeOutput(callsite, outputs);
             }
 
-            routines[routine.name].accepts = (): LogicManifest.TypeField[] | null => {
-                return routine.accepts ? routine.accepts : null
+            const request = await this.createIxRequest("moi.Execute", callsite, callsiteArgs, option);
+            const response = await this.signer.execute(request);
+
+            if (isDeployerCallsite) {
+                this.deployIxResponse = response;
             }
 
-            routines[routine.name].returns = (): LogicManifest.TypeField[] | null => {
-                return routine.returns ? routine.returns : null
-            }
-        })
+            return response;
+        };
 
-        defineReadOnly(this, "routines", routines as Routines<T>);
+        return callback;
     }
 
-    /**
-     * Checks if a routine is mutable based on its name.
-     * 
-     * @param {string} routineName - The name of the routine.
-     * @returns {boolean} True if the routine is mutable, false otherwise.
-     */
-    private isMutableRoutine(routine: LogicManifest.Routine): boolean {
-        return ["persistent", "ephemeral"].includes(routine.mode);
-    }
+    private setupEndpoint() {
+        const endpoint = {};
 
-    /**
-     * Creates the logic payload from the given interaction object.
-     * 
-     * @param {LogicIxObject} ixObject - The interaction object.
-     * @returns {LogicPayload} The logic payload.
-     */
-    protected createPayload(ixObject: LogicIxObject): LogicPayload {
-        const payload = {
-            logic_id: this.getLogicId().string(),
-            callsite: ixObject.routine.name,
-        } as LogicPayload
+        for (const { ptr } of this.getCallsites().values()) {
+            const element = this.getElement(ptr);
 
-        if(ixObject.routine.accepts && 
-        Object.keys(ixObject.routine.accepts).length > 0) {
-            payload.calldata = this.manifestCoder.encodeArguments(
-                ixObject.routine.name, 
-                ...ixObject.arguments
-            );
+            if (element.kind !== ElementType.Routine) {
+                ErrorUtils.throwError(`Element at "${ptr}" is not a valid callsite.`);
+            }
+
+            endpoint[element.data.name] = this.newCallsite(element.data.name);
         }
 
-        return payload;
+        return Object.freeze(endpoint as TCallsites);
     }
 
     /**
-     * Processes the logic interaction result and returns the decoded data or 
-     error, if available.
-     * 
-     * @param {LogicIxResponse} response - The logic interaction response.
-     * @param {number} timeout - The custom timeout for processing the result. (optional)
-     * @returns {Promise<LogicIxResult | null>} A promise that resolves to the 
-     logic interaction result or null.
+     * Retrieves the logic storage based on the provided state and storage key.
+     *
+     * @param state - The state of the logic storage, either Persistent or Ephemeral.
+     * @param storageKey - The key used to access the storage, can be of type StorageKey or Hex.
+     * @returns A promise that resolves to the logic storage data.
+     *
+     * @throws Will throw an error if the logic state is invalid.
      */
-    protected async processResult(response: LogicIxResponse, timeout?: number): Promise<LogicIxResult> {
-        try {
-            const result = await response.result(timeout);
-
-            return {
-                output: this.manifestCoder.decodeOutput(response.routine_name, result.outputs),
-                error: ManifestCoder.decodeException(result[0].error)
-            };
-        } catch(err) {
-            throw err;
+    public async getLogicStorage(state: LogicState, storageKey: StorageKey | Hex) {
+        const logicId = await this.getLogicId();
+        switch (state) {
+            case LogicState.Persistent: {
+                return await this.signer.getProvider().getLogicStorage(logicId, storageKey);
+            }
+            case LogicState.Ephemeral: {
+                const identifier = await this.signer.getIdentifier();
+                return await this.signer.getProvider().getLogicStorage(logicId, identifier, storageKey);
+            }
+            default:
+                ErrorUtils.throwError("Invalid logic state.", ErrorCode.INVALID_ARGUMENT);
         }
+    }
+
+    /**
+     * Retrieves the storage key for the provided state and accessor.
+     *
+     * @param state - The state of the logic storage, either Persistent or Ephemeral.
+     * @param accessor - The accessor used to generate the storage key.
+     * @returns The storage key for the provided state and accessor.
+     */
+    public getStorageKey(state: LogicState, accessor: StateAccessorFn): StorageKey {
+        const element = this.getStateElement(state);
+        const builder = accessor(new StateAccessorBuilder(element.ptr, this));
+
+        if (!(builder instanceof SlotAccessorBuilder)) {
+            ErrorUtils.throwError("Invalid accessor builder.", ErrorCode.UNKNOWN_ERROR);
+        }
+
+        return generateStorageKey(builder.getBaseSlot(), builder.getAccessors());
+    }
+
+    private async getLogicStateValue(state: LogicState, accessor: StorageKey | Hex): Promise<Hex>;
+    private async getLogicStateValue<T>(state: LogicState, accessor: StateAccessorFn): Promise<T>;
+    private async getLogicStateValue<T>(state: LogicState, accessor: StateAccessorFn | StorageKey | Hex): Promise<T | Hex> {
+        if (accessor instanceof StorageKey || isHex(accessor)) {
+            return await this.getLogicStorage(state, accessor);
+        }
+
+        const element = this.getStateElement(state);
+        const builder = accessor(new StateAccessorBuilder(element.ptr, this));
+
+        if (!(builder instanceof SlotAccessorBuilder)) {
+            ErrorUtils.throwError("Invalid accessor builder.", ErrorCode.UNKNOWN_ERROR);
+        }
+
+        const key = generateStorageKey(builder.getBaseSlot(), builder.getAccessors());
+        const value = await this.getLogicStorage(state, key);
+
+        if (!isPrimitiveType(builder.getStorageType())) {
+            return new Depolorizer(hexToBytes(value)).depolorizeInteger() as T;
+        }
+
+        const schema = Schema.parseDataType(builder.getStorageType(), this.getClassDefs(), this.getElements());
+        return new Depolorizer(hexToBytes(value)).depolorize(schema) as T;
+    }
+
+    /**
+     * Retrieves the persistent storage value based on the provided accessor.
+     *
+     * @param storageKey - The storage key used to access the persistent storage.
+     * @returns A promise that resolves to the persistent storage data in POLO encoding.
+     */
+    public async persistent(storageKey: StorageKey | Hex): Promise<Hex>;
+    /**
+     * Retrieves the persistent storage value based on the provided accessor.
+     *
+     * @param accessor - The accessor used to generate the storage key.
+     * @returns A promise that resolves to the persistent storage decoded value.
+     */
+    public async persistent<T>(accessor: StateAccessorFn): Promise<T>;
+    /**
+     * Retrieves the persistent storage value based on the provided accessor or storage key.
+     *
+     * @param accessor - This can storage key or accessor function.
+     * @returns A promise that resolves to the persistent storage data in POLO encoding or decoded value.
+     */
+    public async persistent<T>(accessor: StateAccessorFn | StorageKey | Hex): Promise<T | Hex> {
+        if (typeof accessor === "function") {
+            return await this.getLogicStateValue(LogicState.Persistent, accessor);
+        }
+
+        return await this.getLogicStateValue(LogicState.Persistent, accessor);
+    }
+
+    /**
+     * Retrieves the ephemeral storage value based on the provided accessor.
+     *
+     * @param storageKey - The storage key used to access the ephemeral storage.
+     * @returns A promise that resolves to the ephemeral storage data in POLO encoding.
+     */
+    public async ephemeral(storageKey: StorageKey | Hex): Promise<Hex>;
+    /**
+     * Retrieves the ephemeral storage value based on the provided accessor.
+     *
+     * @param accessor - The accessor used to generate the storage key.
+     * @returns A promise that resolves to the ephemeral storage decoded value.
+     */
+    public async ephemeral<T>(accessor: StateAccessorFn): Promise<T>;
+    /**
+     * Retrieves the ephemeral storage value based on the provided accessor or storage key.
+     * @param accessor - This can storage key or accessor function.
+     * @returns A promise that resolves to the ephemeral storage data in POLO encoding or decoded value.
+     */
+    public async ephemeral<T>(accessor: StateAccessorFn | StorageKey | Hex): Promise<T | Hex> {
+        if (typeof accessor === "function") {
+            return await this.getLogicStateValue(LogicState.Ephemeral, accessor);
+        }
+
+        return await this.getLogicStateValue(LogicState.Ephemeral, accessor);
+    }
+
+    /**
+     * Retrieves logic messages based on the provided options.
+     *
+     * @param {LogicMessageRequestOption} [option] - Optional parameter to specify the request options for logic messages.
+     * @returns {Promise<LogicMessage[]>} A promise that resolves to an array of logic messages.
+     */
+    public async getLogicMessages(option?: LogicMessageRequestOption): Promise<LogicMessage[]> {
+        const provider = this.signer.getProvider();
+        return await provider.getLogicMessage(await this.getLogicId(), option);
     }
 }
 
 /**
- * Returns a logic driver instance based on the given logic id.
- * 
- * @param {string} logicId - The logic id of the logic.
- * @param {Signer} signer - The signer instance for the logic driver.
- * @param {Options} options - The custom tesseract options for retrieving
- * 
- * @returns {Promise<LogicDriver>} A promise that resolves to a LogicDriver instance.
+ * Retrieves a LogicDriver instance for the given logic ID.
+ *
+ * @param logicId - The ID of the logic to retrieve.
+ * @param signer - The signer object used to interact with the logic.
+ * @returns A promise that resolves to a LogicDriver instance.
+ *
+ * @throws Will throw an error if the provider fails to retrieve the logic.
+ *
+ * @example
+ * // Creating a LogicDriver instance using a logic manifest
+ *
+ * import { getLogicDriver, Wallet } from "js-moi-sdk";
+ * import { provider } from "./provider";
+ * import manifest from "./token-ledger.json";
+ *
+ * const wallet = await Wallet.fromMnemonic("...", { provider });
+ * const driver = await getLogicDriver(manifest, wallet);
+ *
+ * console.log(driver);
+ *
+ * >> LogicDriver {  }
+ *
+ * @example
+ * // Creating a LogicDriver instance using a logic id
+ *
+ * import { getLogicDriver, Wallet } from "js-moi-sdk";
+ * import { provider } from "./provider";
+ *
+ * const logicId = "0x1234567890abcdef...";
+ * const wallet = await Wallet.fromMnemonic("...", { provider });
+ * const driver = await getLogicDriver(logicId, wallet);
+ *
+ * console.log(driver);
+ *
+ * >> LogicDriver {  }
  */
-export const getLogicDriver = async <T extends Record<string, (...args: any) => any>>(logicId: string, signer: Signer, options?: Options): Promise<LogicDriver<T>> => {
-    const manifest = await signer.getProvider().getLogicManifest(logicId, "JSON", options);
+export const getLogicDriver = async <TCallsites extends LogicCallsites = LogicCallsites>(logicId: Identifier | LogicManifest, signer: Signer): Promise<LogicDriver<TCallsites>> => {
+    if (isIdentifier(logicId)) {
+        const provider = signer.getProvider();
+        const manifestInPolo = await provider.getLogic(logicId, {
+            modifier: { extract: "manifest" },
+        });
+        const manifest = ManifestCoder.decodeManifest(manifestInPolo, ManifestCoderFormat.JSON);
 
-    if (typeof manifest !== "object") {
-        ErrorUtils.throwError(
-            "Invalid logic manifest",
-            ErrorCode.INVALID_ARGUMENT
-        );
+        return new LogicDriver({ manifest, logicId, signer });
     }
 
-    return new LogicDriver<T>(logicId, manifest, signer);
-}
+    return new LogicDriver<TCallsites>({ manifest: logicId, signer });
+};

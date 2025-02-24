@@ -17,6 +17,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("js-moi-bip39"), exports);
 __exportStar(require("js-moi-constants"), exports);
 __exportStar(require("js-moi-hdnode"), exports);
+__exportStar(require("js-moi-identifiers"), exports);
 __exportStar(require("js-moi-logic"), exports);
 __exportStar(require("js-moi-manifest"), exports);
 __exportStar(require("js-moi-providers"), exports);

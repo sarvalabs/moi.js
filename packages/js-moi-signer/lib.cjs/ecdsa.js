@@ -15,13 +15,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -45,21 +55,14 @@ nobleECC.utils.hmacSha256Sync = (key, ...msgs) => (0, hmac_1.hmac)(sha256_1.sha2
  * Represents the ECDSA_S256 signature type.
  */
 class ECDSA_S256 {
-    prefix;
-    sigName;
-    constructor() {
-        this.prefix = 1;
-        this.sigName = "ECDSA_S256";
-    }
+    prefix = 1;
+    sigName = "ECDSA_S256";
     /**
-     * sign
+     * Signs a message using the provided signing key.
      *
-     * Signs a message using the ECDSA_S256 signature algorithm.
-     *
-     * @param message - The message to be signed, as a Buffer.
-     * @param signingKey - The private key used for signing, either as
-     * a hexadecimal string or a Buffer.
-     * @returns A Signature instance with ECDSA_S256 prefix and parity byte as extra data
+     * @param message - The message to be signed as a Uint8Array.
+     * @param signingKey - The signing key, which can be either a Uint8Array or a hexadecimal string.
+     * @returns A Signature object containing the signed message.
      */
     sign(message, signingKey) {
         let _signingKey;
@@ -75,7 +78,7 @@ class ECDSA_S256 {
         const sigParts = nobleECC.signSync(messageHash, _signingKey, { der: false });
         const digest = {
             _r: (0, utils_1.toDER)(sigParts.slice(0, 32)),
-            _s: (0, utils_1.toDER)(sigParts.slice(32, 64))
+            _s: (0, utils_1.toDER)(sigParts.slice(32, 64)),
         };
         const signature = (0, utils_1.bip66Encode)(digest);
         const prefixArray = new Uint8Array(2);
@@ -99,17 +102,17 @@ class ECDSA_S256 {
      * @returns boolean, to determine whether verification is success/failure
      */
     verify(message, signature, publicKey) {
-        let verificationKey = new Uint8Array(signature.Extra().length + publicKey.length);
-        verificationKey.set(signature.Extra());
-        verificationKey.set(publicKey, signature.Extra().length);
-        let derSignature = signature.Digest();
+        let verificationKey = new Uint8Array(signature.extra().length + publicKey.length);
+        verificationKey.set(signature.extra());
+        verificationKey.set(publicKey, signature.extra().length);
+        let derSignature = signature.digest();
         const messageHash = (0, blake2b_1.blake2b)(message, {
             dkLen: 1 << 5, // Hashing raw message with blake2b to get 32 bytes digest
         });
         const _digest = (0, utils_1.bip66Decode)(derSignature);
         const sigDigest = {
             _r: (0, utils_1.fromDER)(_digest._r),
-            _s: (0, utils_1.fromDER)(_digest._s)
+            _s: (0, utils_1.fromDER)(_digest._s),
         };
         return nobleECC.verify((0, utils_1.JoinSignature)(sigDigest), messageHash, verificationKey, { strict: true });
     }

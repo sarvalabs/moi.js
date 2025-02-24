@@ -1,19 +1,6 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.validateMnemonic = exports.mnemonicToSeedSync = exports.mnemonicToSeed = exports.mnemonicToEntropy = exports.getDefaultWordlist = exports.generateMnemonic = exports.entropyToMnemonic = exports.wordlists = exports._default = void 0;
 /**
  * This code is based on the bitcoinjs/bip39 by Wei Lu and Danieal Cousens
  * Modifications have been made to adapt it to the needs of js-moi-bip39
@@ -26,6 +13,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Repository ISC license details can be found at https://github.com/bitcoinjs/bip39/blob/master/LICENSE
  *
  **/
-__exportStar(require("./bip39"), exports);
-__exportStar(require("./_wordlists"), exports);
+var _wordlists_1 = require("./_wordlists");
+Object.defineProperty(exports, "_default", { enumerable: true, get: function () { return _wordlists_1._default; } });
+Object.defineProperty(exports, "wordlists", { enumerable: true, get: function () { return _wordlists_1.wordlists; } });
+var bip39_1 = require("./bip39");
+Object.defineProperty(exports, "entropyToMnemonic", { enumerable: true, get: function () { return bip39_1.entropyToMnemonic; } });
+Object.defineProperty(exports, "generateMnemonic", { enumerable: true, get: function () { return bip39_1.generateMnemonic; } });
+Object.defineProperty(exports, "getDefaultWordlist", { enumerable: true, get: function () { return bip39_1.getDefaultWordlist; } });
+Object.defineProperty(exports, "mnemonicToEntropy", { enumerable: true, get: function () { return bip39_1.mnemonicToEntropy; } });
+Object.defineProperty(exports, "mnemonicToSeed", { enumerable: true, get: function () { return bip39_1.mnemonicToSeed; } });
+Object.defineProperty(exports, "mnemonicToSeedSync", { enumerable: true, get: function () { return bip39_1.mnemonicToSeedSync; } });
+Object.defineProperty(exports, "validateMnemonic", { enumerable: true, get: function () { return bip39_1.validateMnemonic; } });
 //# sourceMappingURL=index.js.map

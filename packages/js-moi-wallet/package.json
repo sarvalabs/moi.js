@@ -24,15 +24,17 @@
   "license": "Apache-2.0 OR MIT",
   "dependencies": {
     "js-moi-hdnode": "^0.6.0",
+    "js-moi-identifiers": "^0.6.0",
     "js-moi-signer": "^0.6.0",
     "js-moi-providers": "^0.6.0",
     "js-moi-constants": "^0.6.0",
     "js-moi-utils": "^0.6.0",
     "js-moi-bip39": "^0.6.0",
     "@noble/hashes": "^1.1.5",
-    "buffer": "^6.0.3",
     "aes-js": "4.0.0-beta.5",
-    "elliptic": "^6.5.4",
-    "js-polo": "0.1.4"
+    "elliptic": "^6.5.4"
+  },
+  "devDependencies": {
+    "@types/elliptic": "^6.4.0"
   }
 }

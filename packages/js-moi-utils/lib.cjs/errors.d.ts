@@ -18,11 +18,12 @@ export declare enum ErrorCode {
     PROPERTY_NOT_DEFINED = "ERROR_PROPERTY_NOT_DEFINED",
     CALL_EXCEPTION = "ERROR_CALL_EXCEPTION",
     INSUFFICIENT_FUNDS = "ERROR_INSUFFICIENT_FUNDS",
-    NONCE_EXPIRED = "ERROR_NONCE_EXPIRED",
+    SEQUENCE_EXPIRED = "ERROR_NONCE_EXPIRED",
     INTERACTION_UNDERPRICED = "ERROR_INTERACTION_UNDERPRICED",
     UNPREDICTABLE_FUEL_LIMIT = "ERROR_UNPREDICTABLE_FUEL_LIMIT",
     ACTION_REJECTED = "ERROR_ACTION_REJECTED",
-    INVALID_SIGNATURE = "ERROR_INVALID_SIGNATURE"
+    INVALID_SIGNATURE = "ERROR_INVALID_SIGNATURE",
+    NOT_FOUND = "ERROR_NOT_FOUND"
 }
 /**
  * Interface representing error parameters.
@@ -34,10 +35,10 @@ interface ErrorParams {
  * CustomError class that extends the Error class.
  */
 export declare class CustomError extends Error {
-    code: ErrorCode;
+    code: ErrorCode | string | number;
     reason: string;
     params: ErrorParams;
-    constructor(message: string, code?: ErrorCode, params?: ErrorParams);
+    constructor(message: string, code?: ErrorCode | string | number, params?: ErrorParams);
     /**
      * Overrides the toString() method to provide a string representation of the error.
      *
@@ -57,7 +58,7 @@ export declare class ErrorUtils {
      * @param {ErrorParams} params - The parameters of the error.
      * @throws {CustomError} - Throws a CustomError.
      */
-    static throwError(message: string, code?: ErrorCode, params?: ErrorParams): never;
+    static throwError(message: string, code?: ErrorCode | string | number, params?: ErrorParams): never;
     /**
      * Throws a CustomError with the specified argument-related error message,
      * argument name, and value.

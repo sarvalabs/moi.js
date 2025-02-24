@@ -7,23 +7,98 @@ exports.Signer = void 0;
 const js_moi_utils_1 = require("js-moi-utils");
 const ecdsa_1 = __importDefault(require("./ecdsa"));
 const signature_1 = __importDefault(require("./signature"));
+const DEFAULT_FUEL_PRICE = 1;
 /**
- * An abstract class representing a signer responsible for cryptographic
- * activities like signing and verification.
+ * This is an abstract class that provides the base functionality for
+ * signing and verifying messages and interactions. It also provides the ability to
+ * create and execute interactions.
+ *
+ * Inheriting classes must implement the abstract methods ``getKeyId``, ``getIdentifier``,
+ * ``sign``, and ``signInteraction``.
+ *
+ * .. js:method:: getKeyId
+ *
+ *      Retrieves the key ID of the participant.
+ *
+ *      `This is an abstract method that must be implemented by the inheriting class.`
+ *
+ *      :returns: A promise that resolves to the key ID of the participant.
+ *
+ * .. js:method:: getIdentifier
+ *
+ *      Retrieves the identifier of the participant.
+ *
+ *      `This is an abstract method that must be implemented by the inheriting class.`
+ *
+ *      :returns: A promise that resolves to the identifier of the signer.
+ *
+ * .. js:method:: sign
+ *
+ *      Signs a message using the provided signature type.
+ *
+ *      `This is an abstract method that must be implemented by the inheriting class.`
+ *
+ *      :param message: The message to sign.
+ *      :type message: Hex | Uint8Array
+ *      :param sig: The signature type to use.
+ *      :type sig: SigType
+ *
+ *      :returns: A promise that resolves to the hex-encoded signed message.
+ *
+ * .. js:method:: signInteraction
+ *
+ *      Signs an interaction request using the provided signature type.
+ *
+ *      `This is an abstract method that must be implemented by the inheriting class.`
+ *
+ *      :param ix: The interaction request to sign.
+ *      :type ix: InteractionRequest
+ *      :param sig: The signature type to use.
+ *      :type sig: SigType
+ *
+ *      :returns: A promise that resolves to the signed interaction request.
+ *
  */
 class Signer {
     provider;
+    /**
+     * The signing algorithms that the signer supports.
+     * By default, the signer supports the `ecdsa_secp256k1` algorithm.
+     */
     signingAlgorithms;
-    constructor(provider) {
+    fuelPrice = DEFAULT_FUEL_PRICE;
+    constructor(provider, signingAlgorithms) {
         this.provider = provider;
-        this.signingAlgorithms = {
-            ecdsa_secp256k1: new ecdsa_1.default()
+        this.signingAlgorithms = signingAlgorithms ?? {
+            ecdsa_secp256k1: new ecdsa_1.default(),
         };
     }
     /**
-     * Retrieves the connected provider instance.
+     * Sets the fuel price for the signer.
      *
-     * @returns The connected provider instance.
+     * @param {number} fuelPrice - The fuel price to set.
+     * @returns {void}
+     * @throws {Error} if the fuel price is less than 1.
+     */
+    setFuelPrice(fuelPrice) {
+        if (fuelPrice < 1) {
+            js_moi_utils_1.ErrorUtils.throwError("Fuel price must be greater than or equal to 1", js_moi_utils_1.ErrorCode.INVALID_ARGUMENT, { fuelPrice });
+        }
+        this.fuelPrice = fuelPrice;
+    }
+    /**
+     * Connects the signer to a provider.
+     *
+     * @param {Provider} provider - The provider to connect to.
+     */
+    connect(provider) {
+        this.provider = provider;
+    }
+    /**
+     * Returns the provider that the signer is connected to.
+     *
+     * @returns {Provider} The provider that the signer is connected to.
+     *
      * @throws {Error} if the provider is not initialized.
      */
     getProvider() {
@@ -32,164 +107,165 @@ class Signer {
         }
         js_moi_utils_1.ErrorUtils.throwError("Provider is not initialized!", js_moi_utils_1.ErrorCode.NOT_INITIALIZED);
     }
-    /**
-     * Retrieves the nonce (interaction count) for the signer's address
-     * from the provider.
-     *
-     * @param {Options} options - The options for retrieving the nonce. (optional)
-     * @returns {Promise<number | bigint>} A Promise that resolves to the nonce
-     * as a number or bigint.
-     * @throws {Error} if there is an error retrieving the nonce or the provider
-     * is not initialized.
-     */
-    async getNonce(options) {
-        try {
-            const provider = this.getProvider();
-            const address = this.getAddress();
-            if (!options) {
-                return await provider.getPendingInteractionCount(address);
-            }
-            return await provider.getInteractionCount(address, options);
+    async getLatestSequence() {
+        const [participant, index] = await Promise.all([this.getIdentifier(), this.getKeyId()]);
+        const { sequence } = await this.getProvider().getAccountKey(participant, index);
+        return sequence;
+    }
+    async createIxRequestSender(sender) {
+        if (sender == null) {
+            const [participant, index, sequenceId] = await Promise.all([this.getIdentifier(), this.getKeyId(), this.getLatestSequence()]);
+            return { id: participant.toHex(), key_id: index, sequence: sequenceId };
         }
-        catch (err) {
-            throw err;
+        return {
+            id: (await this.getIdentifier()).toHex(),
+            key_id: sender.key_id ?? (await this.getKeyId()),
+            sequence: sender.sequence ?? (await this.getLatestSequence()),
+        };
+    }
+    async createSimulateIxRequest(arg) {
+        // request was array of operations
+        if (Array.isArray(arg)) {
+            return {
+                sender: await this.createIxRequestSender(),
+                fuel_price: this.fuelPrice,
+                operations: arg,
+            };
         }
+        // request was single operation
+        if (typeof arg === "object" && "type" in arg && "payload" in arg) {
+            return {
+                sender: await this.createIxRequestSender(),
+                fuel_price: this.fuelPrice,
+                operations: [arg],
+            };
+        }
+        // request was simulate interaction request without `sender` and `fuel_price`
+        return {
+            ...arg,
+            sender: await this.createIxRequestSender(arg.sender),
+            fuel_price: arg.fuel_price ?? this.fuelPrice,
+        };
     }
     /**
-     * Checks the validity of an interaction object by performing various checks.
+     * Creates an interaction request for either `moi.Simulate` or `moi.Execute`
      *
-     * @param {InteractionMethod} method - The method to be checked.
-     * @param {InteractionObject} ixObject - The interaction object to be checked.
-     * @throws {Error} if any of the checks fail, indicating an invalid interaction.
+     * @param {string} type - The type of interaction request to create.
+     * @param {SignerIx<InteractionRequest | SimulateInteractionRequest> | AnyIxOperation[] | AnyIxOperation} args - The arguments to create the interaction request.
+     *
+     * @returns {Promise<SimulateInteractionRequest | InteractionRequest>} A promise that resolves to the created interaction request.
      */
-    async checkInteraction(method, ixObject) {
-        if (ixObject.sender == null) {
-            js_moi_utils_1.ErrorUtils.throwError("Sender address is missing", js_moi_utils_1.ErrorCode.MISSING_ARGUMENT);
+    async createIxRequest(type, args) {
+        const simulateIxRequest = await this.createSimulateIxRequest(args);
+        if (type === "moi.Simulate") {
+            return simulateIxRequest;
         }
-        if (!(0, js_moi_utils_1.isValidAddress)(ixObject.sender)) {
-            js_moi_utils_1.ErrorUtils.throwError("Invalid sender address", js_moi_utils_1.ErrorCode.INVALID_ARGUMENT);
+        if (typeof args === "object" && "fuel_limit" in args && typeof args.fuel_limit === "number") {
+            return { ...simulateIxRequest, fuel_limit: args.fuel_limit };
         }
-        if (this.isInitialized() && ixObject.sender !== this.getAddress()) {
-            js_moi_utils_1.ErrorUtils.throwError("Sender address mismatches with the signer", js_moi_utils_1.ErrorCode.UNEXPECTED_ARGUMENT);
+        const simulation = await this.simulate(simulateIxRequest);
+        const executeIxRequest = {
+            ...simulateIxRequest,
+            fuel_limit: simulation.fuel_spent,
+        };
+        const err = (0, js_moi_utils_1.validateIxRequest)("moi.Execute", executeIxRequest);
+        if (err != null) {
+            js_moi_utils_1.ErrorUtils.throwError(`Invalid interaction request: ${err.message}`, js_moi_utils_1.ErrorCode.INVALID_ARGUMENT, { ...err });
         }
-        if (ixObject.ix_operations == null || ixObject.ix_operations.length == 0) {
-            js_moi_utils_1.ErrorUtils.throwError("Operations list is missing", js_moi_utils_1.ErrorCode.MISSING_ARGUMENT);
-        }
-        if (method === "send") {
-            if (ixObject.fuel_price == null) {
-                js_moi_utils_1.ErrorUtils.throwError("Fuel price is missing", js_moi_utils_1.ErrorCode.MISSING_ARGUMENT);
-            }
-            if (ixObject.fuel_limit == null) {
-                js_moi_utils_1.ErrorUtils.throwError("Fuel limit is missing", js_moi_utils_1.ErrorCode.MISSING_ARGUMENT);
-            }
-            if (typeof ixObject.fuel_price !== "number" && typeof ixObject.fuel_price !== "bigint") {
-                js_moi_utils_1.ErrorUtils.throwError(`Invalid fuel price. Expected number or bigint, got ${typeof ixObject.fuel_price}`, js_moi_utils_1.ErrorCode.INVALID_ARGUMENT);
-            }
-            if (typeof ixObject.fuel_limit !== "number" && typeof ixObject.fuel_limit !== "bigint") {
-                js_moi_utils_1.ErrorUtils.throwError(`Invalid fuel limit. Expected number or bigint, got ${typeof ixObject.fuel_limit}`, js_moi_utils_1.ErrorCode.INVALID_ARGUMENT);
-            }
-            if (ixObject.fuel_price < 0) {
-                js_moi_utils_1.ErrorUtils.throwError("Fuel price cannot be negative", js_moi_utils_1.ErrorCode.INTERACTION_UNDERPRICED);
-            }
-            if (ixObject.fuel_limit <= 0) {
-                js_moi_utils_1.ErrorUtils.throwError("Fuel limit must be greater than 0", js_moi_utils_1.ErrorCode.INVALID_ARGUMENT);
-            }
-            if (ixObject.nonce != null) {
-                const nonce = await this.getNonce({ tesseract_number: -1 });
-                if (ixObject.nonce < nonce) {
-                    js_moi_utils_1.ErrorUtils.throwError("Invalid nonce", js_moi_utils_1.ErrorCode.NONCE_EXPIRED);
-                }
-            }
-        }
+        return executeIxRequest;
     }
     /**
-     * Prepares the interaction object by populating necessary fields and
-     * performing validity checks.
+     * It a polymorphic function that can simulate an operation, multiple operations, or an interaction request.
      *
-     * @param {InteractionMethod} method - The method for which the interaction is being prepared.
-     * @param {InteractionObject} ixObject - The interaction object to prepare.
-     * @returns {Promise<void>} A Promise that resolves once the preparation is complete.
-     * @throws {Error} if the interaction object is not valid or if there is
-     * an error during preparation.
+     * @param {AnyIxOperation | AnyIxOperation[] | SignerIx<SimulateInteractionRequest>} arg - The operation, multiple operations, or interaction request to simulate.
+     * @param {SimulateOption} option - The options to use for simulation.
+     *
+     * @returns {Promise<Simulate>} A promise that resolves to the simulation result.
+     *
+     * @example
+     * import { AssetStandard, HttpProvider, OpType, Wallet } from "js-moi-sdk";
+     *
+     * const host = "https://voyage-rpc.moi.technology/babylon/";
+     * const provider = new HttpProvider(host);
+     * const wallet = await Wallet.createRandom(provider);
+     * const operation = {
+     *     type: OpType.AssetCreate,
+     *     payload: {
+     *         standard: AssetStandard.MAS0,
+     *         supply: 1000000,
+     *         symbol: "DUMMY",
+     *     },
+     * };
+     *
+     * const simulation = await wallet.simulate(operation);
      */
-    async prepareInteraction(method, ixObject) {
-        if (!ixObject.sender) {
-            ixObject.sender = this.getAddress();
-        }
-        await this.checkInteraction(method, ixObject);
-        if (method === "send" && ixObject.nonce == null) {
-            ixObject.nonce = await this.getNonce();
-        }
+    async simulate(arg, option) {
+        const request = await this.createIxRequest("moi.Simulate", arg);
+        return await this.getProvider().simulate(request, option);
     }
     /**
-     * Initiates an interaction by calling a method on the connected provider.
-     * The interaction object is prepared and sent to the provider for execution.
+     * Executes an operation, multiple operations, or an interaction request.
      *
-     * @param {InteractionObject} ixObject - The interaction object to be executed.
-     * @returns {Promise<InteractionCallResponse>} A Promise that resolves to the
-     * interaction call response.
-     * @throws {Error} if there is an error during the interaction, if the provider
-     * is not initialized,or if the interaction object fails validity checks.
-     */
-    async call(ixObject) {
-        // Get the provider
-        const provider = this.getProvider();
-        await this.prepareInteraction('call', ixObject);
-        return await provider.call(ixObject);
-    }
-    /**
-     * Estimates the fuel required for executing an interaction.
-     * The interaction object is used to estimate the amount of fuel needed for execution.
+     * @param {AnyIxOperation | AnyIxOperation[] | SignerIx<InteractionRequest> | ExecuteIx} arg - The operation, multiple operations, interaction request, or already signed request to execute.
      *
-     * @param {InteractionObject} ixObject - The interaction object for which
-     * fuel estimation is needed.
-     * @returns {Promise<number | bigint>} A Promise that resolves to the
-     * estimated fuel amount.
-     * @throws {Error} if there is an error during fuel estimation, if the
-     * provider is not initialized, or if the interaction object fails
-     * validity checks.
-     */
-    async estimateFuel(ixObject) {
-        // Get the provider
-        const provider = this.getProvider();
-        await this.prepareInteraction('estimateFuel', ixObject);
-        return await provider.estimateFuel(ixObject);
-    }
-    /**
-     * Sends an interaction object by signing it with the appropriate signature algorithm
-     * and forwarding it to the connected provider.
+     * @returns {Promise<InteractionResponse>} A promise that resolves to the interaction response.
      *
-     * @param {InteractionObject} ixObject - The interaction object to send.
-     * @returns {Promise<InteractionResponse>} A Promise that resolves to the
-     * interaction response.
-     * @throws {Error} if there is an error sending the interaction, if the provider
-     * is not initialized, or if the interaction object fails the validity checks.
+     * @throws {Error} if the sequence number is outdated or the interaction request is invalid.
+     *
+     * @example
+     * import { AssetStandard, HttpProvider, OpType, Wallet } from "js-moi-sdk";
+     *
+     * const host = "https://voyage-rpc.moi.technology/babylon/";
+     * const provider = new HttpProvider(host);
+     * const wallet = await Wallet.createRandom(provider);
+     * const operation = {
+     *     type: OpType.AssetCreate,
+     *     payload: {
+     *         standard: AssetStandard.MAS0,
+     *         supply: 1000000,
+     *         symbol: "DUMMY",
+     *     },
+     * };
+     *
+     * const ix = await wallet.execute(operation);
+     * console.log(ix.hash);
+     *
+     * >> "0xfe1...19"
      */
-    async sendInteraction(ixObject) {
-        try {
-            // Get the provider
-            const provider = this.getProvider();
-            // Get the signature algorithm
-            const sigAlgo = this.signingAlgorithms["ecdsa_secp256k1"];
-            await this.prepareInteraction('send', ixObject);
-            // Sign the interaction object
-            const ixRequest = this.signInteraction(ixObject, sigAlgo);
-            // Send the interaction request and return the response
-            return await provider.sendInteraction(ixRequest);
+    async execute(arg) {
+        const { ecdsa_secp256k1: algorithm } = this.signingAlgorithms;
+        // checking argument is an already signed request
+        if (typeof arg === "object" && "interaction" in arg && "signatures" in arg) {
+            if (!(0, js_moi_utils_1.isHex)(arg.interaction)) {
+                js_moi_utils_1.ErrorUtils.throwError("Invalid interaction provided. Not a valid hex.", js_moi_utils_1.ErrorCode.INVALID_ARGUMENT, {
+                    interaction: arg.interaction,
+                });
+            }
+            if (!Array.isArray(arg.signatures)) {
+                js_moi_utils_1.ErrorUtils.throwError("Invalid signatures provided. Not an array.", js_moi_utils_1.ErrorCode.INVALID_ARGUMENT, {
+                    signatures: arg.signatures,
+                });
+            }
+            return await this.getProvider().execute(arg);
         }
-        catch (err) {
-            throw err;
+        const request = await this.createIxRequest("moi.Execute", arg);
+        if (request.sender.sequence < (await this.getLatestSequence())) {
+            js_moi_utils_1.ErrorUtils.throwError("Sequence number is outdated", js_moi_utils_1.ErrorCode.SEQUENCE_EXPIRED);
         }
+        const error = (0, js_moi_utils_1.validateIxRequest)("moi.Execute", request);
+        if (error != null) {
+            js_moi_utils_1.ErrorUtils.throwError(`Invalid interaction request: ${error.message}`, js_moi_utils_1.ErrorCode.INVALID_ARGUMENT, error);
+        }
+        const signedRequest = await this.signInteraction(request, algorithm);
+        return await this.getProvider().execute(signedRequest);
     }
     /**
      * Verifies the authenticity of a signature by performing signature verification
      * using the provided parameters.
      *
      * @param {Uint8Array} message - The message that was signed.
-     * @param {string|Uint8Array} signature - The signature to verify, as a
-     * string or Buffer.
-     * @param {string|Uint8Array} publicKey - The public key used for
-     * verification, as a string or Buffer.
+     * @param {string|Uint8Array} signature - The signature to verify, as a string or Buffer.
+     * @param {string|Uint8Array} publicKey - The public key used for verification, as a string or Buffer.
      * @returns {boolean} A boolean indicating whether the signature is valid or not.
      * @throws {Error} if the signature is invalid or the signature byte is not recognized.
      */

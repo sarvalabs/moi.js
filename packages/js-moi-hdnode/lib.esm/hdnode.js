@@ -1,5 +1,4 @@
 import { HDKey } from "@scure/bip32";
-import { Buffer } from "buffer";
 import { ErrorCode, ErrorUtils } from "js-moi-utils";
 /**
  * This class represents a Hierarchical Deterministic (HD) Node used in
@@ -11,14 +10,25 @@ export class HDNode {
         this.node = node;
     }
     /**
-     * Generates an HDNode from a seed buffer.
+     * Generates an HDNode from a seed.
      *
-     * @param {Buffer} seed - The seed buffer.
+     * @param {Uint8Array} seed - The seed value.
      * @throws {Error} If an error occurs during the HDNode generation.
+     *
+     * @example
+     * import { HDNode, hexToBytes, mnemonicToEntropy } from "js-moi-sdk";
+     *
+     * const mnemonic = "hollow appear ... hurdle";
+     * const seed = mnemonicToEntropy(mnemonic);
+     * const hdNode = HDNode.fromSeed(hexToBytes(seed));
+     *
+     * console.log(hdNode);
+     *
+     * >> HDNode { node: HDKey { ... } }
      */
     static fromSeed(seed) {
         try {
-            // Generate the master HDNode from the seed buffer
+            // Generate the master HDNode from the seed
             const node = HDKey.fromMasterSeed(seed, undefined);
             // Derive the child HDNode using the specified path or default path
             return new HDNode(node);
@@ -32,6 +42,14 @@ export class HDNode {
      *
      * @param {string} extendedKey - The extended key.
      * @throws {Error} If an error occurs during the HDNode generation.
+     *
+     * @example
+     * import { HDNode } from "js-moi-sdk";
+     *
+     * const hdNode = HDNode.fromExtendedKey("...");
+     * console.log(hdNode);
+     *
+     * >> HDNode { node: HDKey { ... } }
      */
     static fromExtendedKey(extendedKey) {
         try {
@@ -48,6 +66,16 @@ export class HDNode {
      * @param {string} path - The derivation path for the child HDNode.
      * @returns {HDNode} The derived child HDNode.
      * @throws {Error} If the HDNode is not initialized.
+     *
+     * @example
+     * import { HDNode } from "js-moi-sdk";
+     *
+     * const hdNode = HDNode.fromSeed("...");
+     * const childNode = hdNode.derivePath("m/44'/0'/0'/0/0");
+     *
+     * console.log(childNode);
+     *
+     * >> HDNode { node: HDKey { ... } }
      */
     derivePath(path) {
         if (!this.node) {
@@ -62,10 +90,21 @@ export class HDNode {
      * @param {number} index - The child index.
      * @returns {HDNode} The derived child HDNode.
      * @throws {Error} If the HDNode is not initialized.
+     *
+     * @example
+     *
+     * import { HDNode } from "js-moi-sdk";
+     *
+     * const hdNode = HDNode.fromSeed("...");
+     * const childHdNode = hdNode.deriveChild(0);
+     *
+     * console.log(childHdNode);
+     *
+     * >> HDNode { node: HDKey { ... } }
      */
     deriveChild(index) {
         if (!this.node) {
-            ErrorUtils.throwError('HDNode not initialized', ErrorCode.NOT_INITIALIZED);
+            ErrorUtils.throwError("HDNode not initialized", ErrorCode.NOT_INITIALIZED);
         }
         const childNode = this.node.deriveChild(index);
         return new HDNode(childNode);
@@ -73,6 +112,16 @@ export class HDNode {
     /**
      * Returns the extended private key associated with this HDNode.
      * @returns The string representation of the extended private key.
+     *
+     * @example
+     * import { HDNode } from "js-moi-sdk";
+     *
+     * const hdNode = HDNode.fromSeed("...");
+     * const extendedPrivateKey = hdNode.getExtendedPrivateKey();
+     *
+     * console.log(extendedPrivateKey);
+     *
+     * >> "xprv9s..."
      */
     getExtendedPrivateKey() {
         return this.node.privateExtendedKey;
@@ -80,6 +129,16 @@ export class HDNode {
     /**
      * Returns the extended public key for the HDNode.
      * @returns The string representation of the extended public key.
+     *
+     * @example
+     * import { HDNode } from "js-moi-sdk";
+     *
+     * const hdNode = HDNode.fromSeed("...");
+     * const extendedPublicKey = hdNode.getExtendedPublicKey();
+     *
+     * console.log(extendedPublicKey);
+     *
+     * >> "xpub9s..."
      */
     getExtendedPublicKey() {
         return this.node.publicExtendedKey;
@@ -87,20 +146,41 @@ export class HDNode {
     /**
      * Retrieves the public key associated with the HDNode.
      *
-     * @returns {Buffer} The public key.
+     * @returns {Uint8Array} The public key.
      * @throws {Error} If the HDNode is not initialized.
+     *
+     * @example
+     *
+     * import { HDNode } from "js-moi-sdk";
+     *
+     * const hdNode = HDNode.fromSeed("...");
+     * const publicKey = hdNode.publicKey();
+     *
+     * console.log(publicKey);
+     *
+     * >> Uint8Array(33) [4, 5, ... 35]
      */
     publicKey() {
-        if (!this.node) {
+        if (this.node.publicKey == null) {
             ErrorUtils.throwError("HDNode not initialized", ErrorCode.NOT_INITIALIZED);
         }
-        return Buffer.from(this.node.publicKey);
+        return this.node.publicKey;
     }
     /**
      * Retrieves the private key associated with the HDNode.
      *
-     * @returns {Buffer} The private key.
+     * @returns {Uint8Array} The private key.
      * @throws {Error} If the HDNode is not initialized or private key is not available.
+     *
+     * @example
+     * import { HDNode } from "js-moi-sdk";
+     *
+     * const hdNode = HDNode.fromSeed("...");
+     * const privateKey = hdNode.privateKey();
+     *
+     * console.log(privateKey);
+     *
+     * >> Uint8Array(32) [4, 5, ... 35]
      */
     privateKey() {
         if (!this.node) {
@@ -109,7 +189,7 @@ export class HDNode {
         if (!this.node.privateKey) {
             ErrorUtils.throwError("Private key not available in the HDNode", ErrorCode.PROPERTY_NOT_DEFINED);
         }
-        return Buffer.from(this.node.privateKey);
+        return this.node.privateKey;
     }
 }
 //# sourceMappingURL=hdnode.js.map

@@ -1,36 +1,54 @@
+import { type Schema } from "js-polo";
+import type { InteractionRequest, RawInteractionRequest } from "./types/interaction";
 /**
- * Enumerates the types of Operations in the system.
+ * Generates and returns the POLO schema for an interaction request.
+ *
+ * @returns The POLO schema for an interaction request.
  */
-export declare enum OpType {
-    INVALID_IX = 0,
-    PARTICIPANT_CREATE = 1,
-    ASSET_TRANSFER = 2,
-    FUEL_SUPPLY = 3,
-    ASSET_CREATE = 4,
-    ASSET_APPROVE = 5,
-    ASSET_REVOKE = 6,
-    ASSET_MINT = 7,
-    ASSET_BURN = 8,
-    LOGIC_DEPLOY = 9,
-    LOGIC_INVOKE = 10,
-    LOGIC_ENLIST = 11,
-    LOGIC_INTERACT = 12,
-    LOGIC_UPGRADE = 13,
-    FILE_CREATE = 14,
-    FILE_UPDATE = 15,
-    PARTICIPANT_REGISTER = 16,
-    VALIDATOR_REGISTER = 17,
-    VALIDATOR_UNREGISTER = 18,
-    STAKE_BOND = 19,
-    STAKE_UNBOND = 20,
-    STAKE_TRANSFER = 21
-}
+export declare const getInteractionRequestSchema: () => Schema;
 /**
- * Enumerates the types of particpant locks in the system.
+ * Transforms an interaction request to a format that can be serialized to POLO.
+ *
+ * @param ix Interaction request
+ * @returns a raw interaction request
  */
-export declare enum LockType {
-    MUTATE_LOCK = 0,
-    READ_LOCK = 1,
-    NO_LOCK = 2
-}
+export declare const transformInteraction: (ix: InteractionRequest) => RawInteractionRequest;
+/**
+ * Encodes an interaction request into a POLO bytes.
+ *
+ * This function takes an interaction request, which can be either an `InteractionRequest`
+ * or a `RawInteractionRequest`, and encodes it into a POLO bytes.
+ *
+ * If the request contains raw interaction, it will be transformed into an raw interaction request
+ * that can be serialized to POLO.
+ *
+ * @param ix - The interaction request to encode. It can be of type `InteractionRequest` or `RawInteractionRequest`.
+ * @returns A POLO bytes representing the encoded interaction request.
+ */
+export declare function encodeInteraction(ix: InteractionRequest | RawInteractionRequest): Uint8Array;
+export declare function interaction(ix: InteractionRequest): Uint8Array;
+export declare function interaction(ix: InteractionRequest, format: "raw"): RawInteractionRequest;
+export declare function interaction(ix: InteractionRequest, format: "polo"): Uint8Array;
+export declare function interaction(ix: InteractionRequest, format: "minimal"): InteractionRequest;
+declare const createInvalidResult: <T extends Record<any, any>>(value: T, field: keyof T, message: string) => {
+    field: keyof T;
+    message: string;
+    value: T[keyof T];
+};
+/**
+ * Validates an InteractionRequest object.
+ *
+ * @param ix - The InteractionRequest object to validate.
+ * @returns A result from `createInvalidResult` if the validation fails, or `null` if the validation passes.
+ *
+ * The function performs the following validations:
+ * - Checks if the sender is present and has a valid address.
+ * - Checks if the fuel price and fuel limit are present and non-negative.
+ * - Checks if the sponsor, if present, has a valid address.
+ * - Checks if the participants, if present, is an array and each participant has a valid address.
+ * - Checks if the operations are present, is an array, and contains at least one operation.
+ * - Checks each operation to ensure it has a type and payload, and validates the operation.
+ */
+export declare function validateIxRequest<TType extends "moi.Execute" | "moi.Simulate">(type: TType, ix: TType extends "moi.Execute" ? InteractionRequest : Omit<InteractionRequest, "fuel_limit">): ReturnType<typeof createInvalidResult> | null;
+export {};
 //# sourceMappingURL=interaction.d.ts.map

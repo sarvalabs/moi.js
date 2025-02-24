@@ -1,4 +1,4 @@
-import type { LogicManifest } from "../../types/manifest";
+import { type LogicManifest } from "js-moi-utils";
 import { BaseManifestCoder } from "./base-manifest-coder";
 export declare class JsonManifestCoder extends BaseManifestCoder {
     private static MANIFEST_SCHEMA;
@@ -24,12 +24,12 @@ export declare class JsonManifestCoder extends BaseManifestCoder {
     /**
      * Serializes a given LogicManifest.Manifest object into a POLO Uint8Array.
      *
-     * @param {LogicManifest.Manifest} manifest - The manifest object to be serialized.
+     * @param {LogicManifest} manifest - The manifest object to be serialized.
      * @returns {Uint8Array} The POLO serialized manifest as a Uint8Array.
      * @throws {Error} If the manifest is invalid.
      */
-    encode(manifest: LogicManifest.Manifest): Uint8Array;
+    encode(manifest: LogicManifest): Uint8Array;
     private getPoloBytes;
-    decode(data: string | Uint8Array): LogicManifest.Manifest;
+    decode(data: string | Uint8Array): LogicManifest;
 }
 //# sourceMappingURL=json-manifest-coder.d.ts.map
