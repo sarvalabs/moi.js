@@ -1,6 +1,20 @@
 import BN from "bn.js";
-import { Buffer } from "buffer";
-export type NumberLike = string | number | bigint | BN | Buffer | Uint8Array | number[];
+export type Hex = `0x${string}`;
+/**
+ * A type representing a number in hexadecimal format.
+ */
+export type Quantity = Hex;
+export type Address = Hex;
+export type NumberLike = string | number | bigint | BN | Uint8Array | number[];
+/**
+ * Ensures that a given string has the '0x' prefix.
+ * If the string already has the prefix, it is returned as is.
+ * Otherwise, the prefix is added to the string.
+ *
+ * @param {string} hex - The input string.
+ * @returns {Hex} The string with the '0x' prefix.
+ */
+export declare const ensureHexPrefix: (hex: string) => Hex;
 /**
  * Converts a number, bigint, or BN instance to a hexadecimal string representation.
  * If the input value is not already a BN instance, it is converted to one.
@@ -10,23 +24,27 @@ export type NumberLike = string | number | bigint | BN | Buffer | Uint8Array | n
  * @returns {string} - The hexadecimal string representation of the value.
  * @throws {Error} If the input value is a negative number.
  */
-export declare const numToHex: (value: NumberLike) => string;
+export declare const numToHex: (value: NumberLike) => Hex;
 /**
+ * @deprecated Use `numToHex` instead.
+ *
  * Converts a number, bigint, or BN instance to a quantity string representation.
  * The quantity string is prefixed with "0x" and is obtained by calling `numToHex` function.
  *
  * @param {NumberLike} value - The value to convert to a quantity string.
- * @returns {string} - The quantity string representation of the value.
+ * @returns {Hex} - The quantity string representation of the value.
  * @throws {Error} If an error occurs during the conversion.
  */
-export declare const toQuantity: (value: NumberLike) => string;
+export declare const toQuantity: (value: NumberLike) => Hex;
 /**
+ * @deprecated Use `bytesToHex` instead.
+ *
  * Converts a Uint8Array to a hexadecimal string representation.
  *
  * @param {Uint8Array} data - The Uint8Array to encode as a hexadecimal string.
- * @returns {string} The hexadecimal string representation of the Uint8Array.
+ * @returns {Hex} The hexadecimal string representation of the Uint8Array.
  */
-export declare const encodeToString: (data: Uint8Array) => string;
+export declare const encodeToString: (data: Uint8Array) => Hex;
 /**
  * Converts a hexadecimal string to a Uint8Array.
  *
@@ -50,14 +68,16 @@ export declare const hexToBN: (hex: string) => bigint | number;
  * @param {Uint8Array} data - The Uint8Array to convert to a hexadecimal string.
  * @returns {string} The hexadecimal string representation of the Uint8Array.
  */
-export declare const bytesToHex: (data: Uint8Array) => string;
+export declare const bytesToHex: (data: Uint8Array) => Hex;
 /**
- * Checks if a given string is a valid hexadecimal value.
+ * Checks if a given value is a hexadecimal string.
+ * Optionally, the length of the hexadecimal string can be specified.
  *
- * @param {string} data - The input string.
- * @returns {boolean} True if the input is a valid hexadecimal string, false otherwise.
+ * @param {unknown} value - The value to check.
+ * @param {number} byteLength - The length of the in terms of bytes l.
+ * @returns {boolean} True if the value is a hexadecimal string, false otherwise.
  */
-export declare const isHex: (data: string) => boolean;
+export declare const isHex: (value: unknown, byteLength?: number) => value is Hex;
 /**
  * Removes the '0x' prefix from a hexadecimal string if present.
  *
@@ -65,4 +85,25 @@ export declare const isHex: (data: string) => boolean;
  * @returns {string} The trimmed hexadecimal string.
  */
 export declare const trimHexPrefix: (data: string) => string;
+/**
+ * Checks if a given value is an address.
+ *
+ * @param {unknown} value - The value to check.
+ * @returns {boolean} True if the value is an address, false otherwise.
+ */
+export declare const isAddress: (value: unknown) => value is Address;
+/**
+ * Converts a hexadecimal string to a hash using the BLAKE2b cryptographic hash function.
+ *
+ * @param hex - The hexadecimal string to be hashed.
+ * @returns The resulting hash as a hexadecimal string.
+ */
+export declare const hexToHash: (hex: Hex | Uint8Array) => Hex;
+/**
+ * Checks if the given Uint8Array consists entirely of null bytes (0x00).
+ *
+ * @param bytes - The Uint8Array to check.
+ * @returns `true` if all bytes are null (0x00), otherwise `false`.
+ */
+export declare const isNullBytes: (bytes: Uint8Array) => boolean;
 //# sourceMappingURL=hex.d.ts.map

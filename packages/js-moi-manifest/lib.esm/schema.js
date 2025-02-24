@@ -1,4 +1,4 @@
-import { ErrorCode, ErrorUtils } from "js-moi-utils";
+import { ElementType, ErrorCode, ErrorUtils } from "js-moi-utils";
 const ARRAY_MATCHER_REGEX = /^\[(\d*)\]/;
 const primitiveTypes = ["null", "bool", "bytes", "address", "string", "u64", "u256", "i64", "i256", "bigint"];
 export const isPrimitiveType = (type) => {
@@ -41,7 +41,7 @@ export class Schema {
                         kind: "string",
                     },
                 },
-            }
+            },
         },
     };
     static PISA_DEPS_SCHEMA = {
@@ -219,8 +219,8 @@ export class Schema {
             },
             fields: {
                 ...Schema.PISA_TYPE_FIELD_SCHEMA,
-            }
-        }
+            },
+        },
     };
     static PISA_EXCEPTION_SCHEMA = {
         kind: "struct",
@@ -252,6 +252,14 @@ export class Schema {
             },
             error: {
                 kind: "bytes",
+            },
+        },
+    };
+    static PISA_BUILT_IN_LOG_SCHEMA = {
+        kind: "struct",
+        fields: {
+            value: {
+                kind: "string",
             },
         },
     };
@@ -349,7 +357,9 @@ export class Schema {
             kind: "struct",
             fields: {},
         };
-        element.data = element.data;
+        if (element?.kind !== ElementType.Class) {
+            ErrorUtils.throwError(`Invalid class element: ${className}`, ErrorCode.INVALID_ARGUMENT);
+        }
         Object.values(element.data.fields).forEach((field) => {
             schema.fields[field.label] = Schema.parseDataType(field.type, classDef, elements);
         });

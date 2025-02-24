@@ -3,6 +3,7 @@
  */
 export declare enum ManifestCoderFormat {
     JSON = "JSON",
-    YAML = "YAML"
+    YAML = "YAML",
+    POLO = "POLO"
 }
 //# sourceMappingURL=serialization-format.d.ts.map

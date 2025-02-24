@@ -1,4 +1,3 @@
-import { Buffer } from "buffer";
 import { SigType } from "../types";
 import Signature from "./signature";
 /**
@@ -7,20 +6,16 @@ import Signature from "./signature";
  * Represents the ECDSA_S256 signature type.
  */
 export default class ECDSA_S256 implements SigType {
-    prefix: number;
-    sigName: string;
-    constructor();
+    readonly prefix: number;
+    readonly sigName: string;
     /**
-     * sign
+     * Signs a message using the provided signing key.
      *
-     * Signs a message using the ECDSA_S256 signature algorithm.
-     *
-     * @param message - The message to be signed, as a Buffer.
-     * @param signingKey - The private key used for signing, either as
-     * a hexadecimal string or a Buffer.
-     * @returns A Signature instance with ECDSA_S256 prefix and parity byte as extra data
+     * @param message - The message to be signed as a Uint8Array.
+     * @param signingKey - The signing key, which can be either a Uint8Array or a hexadecimal string.
+     * @returns A Signature object containing the signed message.
      */
-    sign(message: Buffer, signingKey: Buffer | string): Signature;
+    sign(message: Uint8Array, signingKey: Uint8Array | string): Signature;
     /**
      * verify
      *

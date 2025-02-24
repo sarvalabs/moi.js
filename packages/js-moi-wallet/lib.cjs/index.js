@@ -14,5 +14,9 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.encryptKeystoreData = exports.decryptKeystoreData = void 0;
+var keystore_1 = require("./keystore");
+Object.defineProperty(exports, "decryptKeystoreData", { enumerable: true, get: function () { return keystore_1.decryptKeystoreData; } });
+Object.defineProperty(exports, "encryptKeystoreData", { enumerable: true, get: function () { return keystore_1.encryptKeystoreData; } });
 __exportStar(require("./wallet"), exports);
 //# sourceMappingURL=index.js.map

@@ -1,0 +1,372 @@
+{
+  "syntax": 1,
+  "engine": {
+    "kind": "PISA",
+    "flags": []
+  },
+  "elements": [
+    {
+      "ptr": 0,
+      "kind": "constant",
+      "data": {
+        "type": "string",
+        "value": "0x06696e73756666696369656e742062616c616e6365"
+      }
+    },
+    {
+      "ptr": 1,
+      "kind": "state",
+      "data": {
+        "mode": "ephemeral",
+        "fields": [
+          {
+            "slot": 0,
+            "label": "Spendable",
+            "type": "u256"
+          },
+          {
+            "slot": 1,
+            "label": "Lockedup",
+            "type": "u256"
+          }
+        ]
+      }
+    },
+    {
+      "ptr": 2,
+      "kind": "state",
+      "data": {
+        "mode": "persistent",
+        "fields": [
+          {
+            "slot": 0,
+            "label": "Name",
+            "type": "string"
+          },
+          {
+            "slot": 1,
+            "label": "Symbol",
+            "type": "string"
+          },
+          {
+            "slot": 2,
+            "label": "Supply",
+            "type": "u256"
+          },
+          {
+            "slot": 3,
+            "label": "Owner",
+            "type": "address"
+          }
+        ]
+      }
+    },
+    {
+      "ptr": 3,
+      "deps": [
+        2,
+        1
+      ],
+      "kind": "routine",
+      "data": {
+        "name": "Seed",
+        "mode": "persistent",
+        "kind": "deploy",
+        "accepts": [
+          {
+            "slot": 0,
+            "label": "name",
+            "type": "string"
+          },
+          {
+            "slot": 1,
+            "label": "symbol",
+            "type": "string"
+          },
+          {
+            "slot": 2,
+            "label": "supply",
+            "type": "u256"
+          }
+        ],
+        "returns": [],
+        "executes": {
+          "bin": [
+            128,
+            0,
+            0,
+            4,
+            1,
+            0,
+            54,
+            0,
+            1,
+            129,
+            0,
+            128,
+            0,
+            1,
+            4,
+            1,
+            1,
+            54,
+            0,
+            1,
+            129,
+            0,
+            128,
+            0,
+            2,
+            4,
+            1,
+            2,
+            54,
+            0,
+            1,
+            129,
+            0,
+            128,
+            0,
+            3,
+            115,
+            2,
+            73,
+            2,
+            2,
+            54,
+            0,
+            2,
+            129,
+            0,
+            115,
+            0,
+            131,
+            2,
+            0,
+            0,
+            54,
+            2,
+            1,
+            132,
+            2,
+            0
+          ]
+        },
+        "catches": []
+      }
+    },
+    {
+      "ptr": 4,
+      "deps": [
+        1
+      ],
+      "kind": "routine",
+      "data": {
+        "name": "Register",
+        "mode": "ephemeral",
+        "kind": "enlist",
+        "accepts": [],
+        "returns": [],
+        "executes": {
+          "bin": [
+            115,
+            0,
+            131,
+            1,
+            0,
+            0,
+            43,
+            2,
+            7,
+            54,
+            1,
+            2,
+            132,
+            1,
+            0,
+            115,
+            0,
+            131,
+            1,
+            1,
+            0,
+            43,
+            2,
+            7,
+            54,
+            1,
+            2,
+            132,
+            1,
+            0
+          ]
+        },
+        "catches": []
+      }
+    },
+    {
+      "ptr": 5,
+      "deps": [
+        0,
+        1
+      ],
+      "kind": "routine",
+      "data": {
+        "name": "Lockup",
+        "mode": "ephemeral",
+        "kind": "invoke",
+        "accepts": [
+          {
+            "slot": 0,
+            "label": "amount",
+            "type": "u256"
+          }
+        ],
+        "returns": [],
+        "executes": {
+          "bin": [
+            115,
+            0,
+            131,
+            1,
+            0,
+            0,
+            55,
+            2,
+            1,
+            4,
+            3,
+            0,
+            68,
+            4,
+            2,
+            3,
+            98,
+            4,
+            4,
+            17,
+            5,
+            11,
+            3,
+            5,
+            4,
+            17,
+            4,
+            0,
+            16,
+            4,
+            4,
+            7,
+            4,
+            1,
+            102,
+            3,
+            2,
+            3,
+            36,
+            2,
+            3,
+            54,
+            1,
+            2,
+            132,
+            1,
+            0,
+            115,
+            0,
+            131,
+            1,
+            1,
+            0,
+            55,
+            2,
+            1,
+            4,
+            3,
+            0,
+            101,
+            3,
+            2,
+            3,
+            36,
+            2,
+            3,
+            54,
+            1,
+            2,
+            132,
+            1,
+            0
+          ]
+        },
+        "catches": []
+      }
+    },
+    {
+      "ptr": 6,
+      "deps": [
+        2,
+        1
+      ],
+      "kind": "routine",
+      "data": {
+        "name": "Mint",
+        "mode": "persistent",
+        "kind": "invoke",
+        "accepts": [
+          {
+            "slot": 0,
+            "label": "amount",
+            "type": "u256"
+          }
+        ],
+        "returns": [],
+        "executes": {
+          "bin": [
+            128,
+            0,
+            2,
+            55,
+            1,
+            0,
+            4,
+            2,
+            0,
+            101,
+            1,
+            1,
+            2,
+            54,
+            0,
+            1,
+            129,
+            0,
+            115,
+            0,
+            131,
+            1,
+            0,
+            0,
+            55,
+            2,
+            1,
+            4,
+            3,
+            0,
+            101,
+            2,
+            2,
+            3,
+            54,
+            1,
+            2,
+            132,
+            1,
+            0
+          ]
+        },
+        "catches": []
+      }
+    }
+  ]
+}

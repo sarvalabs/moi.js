@@ -5,4 +5,5 @@
 export enum ManifestCoderFormat {
     JSON = "JSON",
     YAML = "YAML",
+    POLO = "POLO",
 }

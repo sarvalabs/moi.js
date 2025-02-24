@@ -1,8 +1,7 @@
-export type * from "../types/manifest";
-export type * from "../types/response";
-export * from "./manifest";
+export { ElementDescriptor } from "./element-descriptor";
+export { ManifestCoder } from "./manifest-coder";
 export { ManifestCoderFormat } from "./manifest-coder/serialization-format";
-export * from "./context-state-matrix";
-export * from "./element-descriptor";
-export * from "./schema";
+export { isArray, isClass, isMap, isPrimitiveType, Schema } from "./schema";
+export type { Exception } from "./types/exception";
+export type { EventDef, MethodDef, RoutineDef } from "./types/manifest";
 //# sourceMappingURL=index.d.ts.map

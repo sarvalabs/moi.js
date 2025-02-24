@@ -1,44 +1,38 @@
-import { ErrorCode, ErrorUtils } from "js-moi-utils";
-import { ContextStateMatrix } from "./context-state-matrix";
+import { ElementType, ErrorCode, ErrorUtils } from "js-moi-utils";
 /**
  * This class represents a descriptor for elements in the logic manifest.
  */
 export class ElementDescriptor {
-    stateMatrix;
     elements = new Map();
     callSites = new Map();
     classDefs = new Map();
     methodDefs = new Map();
     eventsDefs = new Map();
+    stateDef = new Map();
     constructor(elements) {
-        this.stateMatrix = new ContextStateMatrix(elements);
-        // Populate the maps for elements, call sites, class and method definitions.
         for (const element of elements) {
             this.elements.set(element.ptr, element);
             switch (element.kind) {
-                case "class":
-                    const classData = element.data;
-                    this.classDefs.set("class." + classData.name, element.ptr);
+                case ElementType.Class:
+                    this.classDefs.set("class." + element.data.name, element.ptr);
                     break;
-                case "method":
-                    const methodData = element.data;
-                    const methodDef = {
+                case ElementType.Method:
+                    this.methodDefs.set(element.data.name, {
                         ptr: element.ptr,
-                        class: methodData.class,
-                    };
-                    this.methodDefs.set(methodData.name, methodDef);
+                        class: element.data.class,
+                    });
                     break;
-                case "routine":
-                    const routineData = element.data;
-                    const callsite = {
+                case ElementType.Routine:
+                    this.callSites.set(element.data.name, {
                         ptr: element.ptr,
-                        kind: routineData.kind,
-                    };
-                    this.callSites.set(routineData.name, callsite);
+                        kind: element.data.kind,
+                    });
                     break;
-                case "event":
-                    const eventData = element.data;
-                    this.eventsDefs.set(eventData.name, { ptr: element.ptr, topics: eventData.topics });
+                case ElementType.Event:
+                    this.eventsDefs.set(element.data.name, {
+                        ptr: element.ptr,
+                        topics: element.data.topics,
+                    });
                     break;
                 default:
                     break;
@@ -46,37 +40,49 @@ export class ElementDescriptor {
         }
     }
     /**
-     * Retrieves the state matrix associated with the ElementDescriptor.
+     * Retrieves a LogicElement from the elements map using the provided pointer.
      *
-     * @returns {ContextStateMatrix} The state matrix.
+     * @param ptr - The pointer to the LogicElement to retrieve.
+     * @returns The LogicElement associated with the provided pointer.
+     *
+     * @throws Will throw an error if the element with the specified pointer is not found.
      */
-    getStateMatrix() {
-        return this.stateMatrix;
+    getElement(ptr) {
+        const elm = this.elements.get(ptr);
+        if (elm == null) {
+            return ErrorUtils.throwError(`Element with pointer ${ptr} not found.`, ErrorCode.NOT_FOUND);
+        }
+        return elm;
     }
     /**
-     * Retrieves the map of elements associated with the ElementDescriptor.
+     * Retrieves the map of logic elements.
      *
-     * @returns {Map<number, LogicManifest.Element>} The elements map.
+     * @returns {Map<number, LogicElement>} A map where the keys are numbers and the values are LogicElement instances.
      */
     getElements() {
         return this.elements;
     }
     /**
-     * Retrieves the map of call sites associated with the ElementDescriptor.
+     * Retrieves the call sites associated with this manifest.
      *
-     * @returns {Map<string, CallSite>} The call sites map.
+     * @returns {Map<string, RoutineDef>} A map where the keys are strings representing the call site identifiers and the values are `RoutineDef` objects defining the routines.
      */
     getCallsites() {
         return this.callSites;
     }
     /**
-     * Retrieves the map of class definitions associated with the ElementDescriptor.
+     * Retrieves the class definitions.
      *
-     * @returns {Map<string, number>} The class definitions map.
+     * @returns {Map<string, number>} A map where the keys are class names (strings) and the values are class definitions (numbers).
      */
     getClassDefs() {
         return this.classDefs;
     }
+    /**
+     * Retrieves the map of event definitions.
+     *
+     * @returns {Map<string, EventDef>} A map where the keys are event names and the values are event definitions.
+     */
     getEvents() {
         return this.eventsDefs;
     }
@@ -89,11 +95,11 @@ export class ElementDescriptor {
         return this.methodDefs;
     }
     /**
-     * Retrieves the methods of a class based on the given class name.
+     * Retrieves the methods of a specified class.
      *
-     * @param {string} className - The name of the class.
-     * @returns {Map<string, LogicManifest.Method>} The methods of the class.
-     * @throws {Error} if the class name is invalid.
+     * @param className - The name of the class whose methods are to be retrieved.
+     * @returns A map where the keys are method names and the values are `ElementData` objects representing the methods.
+     * @throws Will throw an error if the class name is invalid.
      */
     getClassMethods(className) {
         const classPtr = this.classDefs.get(className);
@@ -104,54 +110,60 @@ export class ElementDescriptor {
         this.methodDefs.forEach((method, methodName) => {
             if (method.class === className) {
                 const element = this.elements.get(method.ptr);
+                if (element == null || element.kind !== ElementType.Method) {
+                    return;
+                }
                 classMethods.set(methodName, element.data);
             }
         });
         return classMethods;
     }
     /**
-     * Retrieves the element from the logic manifest based on the given
-     * routine name.
+     * Retrieves a routine element by its name.
      *
-     * @param {string} routineName - The name of the routine.
-     * @returns {LogicManifest.Element} The routine element.
-     * @throws {Error} if the routine name is invalid.
+     * @param name - The name of the routine element to retrieve.
+     * @returns The routine element associated with the given name.
+     * @throws Will throw an error if the routine name is not found.
      */
-    getRoutineElement(routineName) {
-        const callsite = this.callSites.get(routineName);
+    getRoutineElement(name) {
+        const callsite = this.callSites.get(name);
         if (!callsite) {
-            return ErrorUtils.throwError(`Invalid routine name: ${routineName}`, ErrorCode.INVALID_ARGUMENT);
+            ErrorUtils.throwError(`Routine name "${name}" not found.`, ErrorCode.NOT_FOUND);
         }
-        return this.elements.get(callsite.ptr);
+        const element = this.getElement(callsite.ptr);
+        if (element.kind !== ElementType.Routine) {
+            ErrorUtils.throwError(`Element is not a routine: ${name}`, ErrorCode.UNKNOWN_ERROR);
+        }
+        return element;
     }
     /**
-     * Retrieves the element from the logic manifest based on the given
-     * class name.
+     * Retrieves a class element by its name.
      *
-     * @returns {LogicManifest.Element} The class element.
-     * @throws {Error} if the class name is invalid.
+     * @param className - The name of the class to retrieve.
+     * @returns The class element associated with the given name.
+     * @throws Will throw an error if the class name is invalid
      */
     getClassElement(className) {
         const ptr = this.classDefs.get(className);
         if (ptr === undefined) {
-            return ErrorUtils.throwError(`Invalid routine name: ${className}`, ErrorCode.INVALID_ARGUMENT);
+            return ErrorUtils.throwError(`Class name "${className}" not found.`, ErrorCode.NOT_FOUND);
         }
-        return this.elements.get(ptr);
+        const element = this.getElement(ptr);
+        if (element.kind !== ElementType.Class) {
+            return ErrorUtils.throwError(`Element is not a class: ${className}`, ErrorCode.UNKNOWN_ERROR);
+        }
+        return element;
     }
-    /**
-     * Retrieves the element from the logic manifest based on the given
-     * method name.
-     *
-     * @param {string} methodName - The name of the method.
-     * @returns {LogicManifest.Element} The method element.
-     * @throws {Error} if the method name is invalid.
-     */
     getMethodElement(methodName) {
         const methodDef = this.methodDefs.get(methodName);
-        if (!methodDef) {
-            return ErrorUtils.throwError(`Invalid routine name: ${methodName}`, ErrorCode.INVALID_ARGUMENT);
+        if (methodDef == null) {
+            ErrorUtils.throwError(`Method name "${methodName}" not found.`, ErrorCode.NOT_FOUND);
         }
-        return this.elements.get(methodDef.ptr);
+        const element = this.getElement(methodDef.ptr);
+        if (element.kind !== ElementType.Method) {
+            ErrorUtils.throwError(`Element is not a method: ${methodName}`, ErrorCode.UNKNOWN_ERROR);
+        }
+        return element;
     }
     /**
      * Retrieves the element from the logic manifest based on the given
@@ -165,9 +177,13 @@ export class ElementDescriptor {
     getEventElement(eventName) {
         const eventDef = this.eventsDefs.get(eventName);
         if (!eventDef) {
-            return ErrorUtils.throwError(`Invalid event name: ${eventName}`, ErrorCode.INVALID_ARGUMENT);
+            ErrorUtils.throwError(`Event name "${eventName}" not found.`, ErrorCode.NOT_FOUND);
         }
-        return this.elements.get(eventDef.ptr);
+        const element = this.getElement(eventDef.ptr);
+        if (element.kind !== ElementType.Event) {
+            return ErrorUtils.throwError(`Element is not an event: ${eventName}`, ErrorCode.UNKNOWN_ERROR);
+        }
+        return element;
     }
 }
 //# sourceMappingURL=element-descriptor.js.map

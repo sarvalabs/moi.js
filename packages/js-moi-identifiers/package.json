@@ -1,0 +1,31 @@
+{
+  "name": "js-moi-identifiers",
+  "version": "0.6.0",
+  "description": "It a library that contains implementations for all account identifiers used in the MOI Protocol such as the `AssetID`, `LogicID` and `ParticipantID` identifiers",
+  "main": "./lib.cjs/index.js",
+  "module": "./lib.esm/index.js",
+  "exports": {
+    ".": {
+      "import": "./lib.esm/index.js",
+      "require": "./lib.cjs/index.js"
+    }
+  },
+  "scripts": {
+    "compile": "tsc -b tsconfig.json"
+  },
+  "homepage": "https://docs.moi.technology/docs/build/packages/js-moi-sdk",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/sarvalabs/js-moi-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sarvalabs/js-moi-sdk/issues"
+  },
+  "keywords": [
+    "moichain",
+    "moi",
+    "utility"
+  ],
+  "author": "Sarva Labs Inc. & MOI Protocol Developers",
+  "license": "Apache-2.0 OR MIT"
+}

@@ -1,5 +1,5 @@
+import { type LogicElement, type TypeField } from "js-moi-utils";
 import { Schema as PoloSchema } from "js-polo";
-import { LogicManifest } from "../types/manifest";
 export declare const isPrimitiveType: (type: string) => boolean;
 export declare const isArray: (type: string) => boolean;
 export declare const isMap: (type: string) => boolean;
@@ -15,7 +15,7 @@ export declare const isClass: (type: string, classDefs: Map<string, number>) => 
 export declare class Schema {
     private elements;
     private classDefs;
-    constructor(elements: Map<number, LogicManifest.Element>, classDefs: Map<string, number>);
+    constructor(elements: Map<number, LogicElement>, classDefs: Map<string, number>);
     static PISA_ENGINE_SCHEMA: {
         kind: string;
         fields: {
@@ -400,6 +400,14 @@ export declare class Schema {
             };
         };
     };
+    static PISA_BUILT_IN_LOG_SCHEMA: {
+        kind: string;
+        fields: {
+            value: {
+                kind: string;
+            };
+        };
+    };
     /**
      * Extracts the array data type from the provided data type string.
      *
@@ -430,7 +438,7 @@ export declare class Schema {
      * @param {string} className - The name of the class.
      * @returns {object} The schema for the class.
      */
-    static parseClassFields(className: string, classDef: Map<string, number>, elements: Map<number, LogicManifest.Element>): PoloSchema;
+    static parseClassFields(className: string, classDef: Map<string, number>, elements: Map<number, LogicElement>): PoloSchema;
     /**
      * Parses a data type and generates the corresponding schema based on the
      * data type. The parsing is performed recursively to handle nested data types,
@@ -440,7 +448,7 @@ export declare class Schema {
      * @returns {object} The schema generated based on the data type.
      * @throws {Error} If the data type is unsupported.
      */
-    static parseDataType(type: string, classDef: Map<string, number>, elements: Map<number, LogicManifest.Element>): PoloSchema;
+    static parseDataType(type: string, classDef: Map<string, number>, elements: Map<number, LogicElement>): PoloSchema;
     /**
      * Parses an array of fields and generates the schema based on the fields.
      *
@@ -448,6 +456,6 @@ export declare class Schema {
      * @returns {PoloSchema} The generated schema based on the fields.
      * @throws {Error} If the fields are invalid or contain unsupported data types.
      */
-    parseFields(fields: LogicManifest.TypeField[]): PoloSchema;
+    parseFields(fields: TypeField[]): PoloSchema;
 }
 //# sourceMappingURL=schema.d.ts.map

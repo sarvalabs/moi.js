@@ -1,179 +1,128 @@
-import { ErrorCode, ErrorUtils, hexToBytes, isValidAddress } from "js-moi-utils";
+import { ErrorCode, ErrorUtils, hexToBytes, isHex, validateIxRequest } from "js-moi-utils";
 import ECDSA_S256 from "./ecdsa";
 import Signature from "./signature";
-/**
- * An abstract class representing a signer responsible for cryptographic
- * activities like signing and verification.
- */
+const DEFAULT_FUEL_PRICE = 1;
 export class Signer {
     provider;
     signingAlgorithms;
-    constructor(provider) {
+    fuelPrice = DEFAULT_FUEL_PRICE;
+    constructor(provider, signingAlgorithms) {
         this.provider = provider;
-        this.signingAlgorithms = {
-            ecdsa_secp256k1: new ECDSA_S256()
+        this.signingAlgorithms = signingAlgorithms ?? {
+            ecdsa_secp256k1: new ECDSA_S256(),
         };
     }
     /**
-     * Retrieves the connected provider instance.
+     * Sets the fuel price for the signer.
      *
-     * @returns The connected provider instance.
-     * @throws {Error} if the provider is not initialized.
+     * @param {number} fuelPrice - The fuel price to set.
+     * @returns {void}
+     * @throws {Error} if the fuel price is less than 1.
      */
+    setFuelPrice(fuelPrice) {
+        if (fuelPrice < 1) {
+            ErrorUtils.throwError("Fuel price must be greater than or equal to 1", ErrorCode.INVALID_ARGUMENT, { fuelPrice });
+        }
+        this.fuelPrice = fuelPrice;
+    }
+    connect(provider) {
+        this.provider = provider;
+    }
     getProvider() {
         if (this.provider) {
             return this.provider;
         }
         ErrorUtils.throwError("Provider is not initialized!", ErrorCode.NOT_INITIALIZED);
     }
-    /**
-     * Retrieves the nonce (interaction count) for the signer's address
-     * from the provider.
-     *
-     * @param {Options} options - The options for retrieving the nonce. (optional)
-     * @returns {Promise<number | bigint>} A Promise that resolves to the nonce
-     * as a number or bigint.
-     * @throws {Error} if there is an error retrieving the nonce or the provider
-     * is not initialized.
-     */
-    async getNonce(options) {
-        try {
-            const provider = this.getProvider();
-            const address = this.getAddress();
-            if (!options) {
-                return await provider.getPendingInteractionCount(address);
-            }
-            return await provider.getInteractionCount(address, options);
-        }
-        catch (err) {
-            throw err;
-        }
+    async getLatestSequence() {
+        const [participant, index] = await Promise.all([this.getIdentifier(), this.getKeyId()]);
+        const { sequence } = await this.getProvider().getAccountKey(participant, index);
+        return sequence;
     }
-    /**
-     * Checks the validity of an interaction object by performing various checks.
-     *
-     * @param {InteractionMethod} method - The method to be checked.
-     * @param {InteractionObject} ixObject - The interaction object to be checked.
-     * @throws {Error} if any of the checks fail, indicating an invalid interaction.
-     */
-    async checkInteraction(method, ixObject) {
-        if (ixObject.sender == null) {
-            ErrorUtils.throwError("Sender address is missing", ErrorCode.MISSING_ARGUMENT);
+    async createIxRequestSender(sender) {
+        if (sender == null) {
+            const [participant, index, sequenceId] = await Promise.all([this.getIdentifier(), this.getKeyId(), this.getLatestSequence()]);
+            return { id: participant.toHex(), key_id: index, sequence: sequenceId };
         }
-        if (!isValidAddress(ixObject.sender)) {
-            ErrorUtils.throwError("Invalid sender address", ErrorCode.INVALID_ARGUMENT);
-        }
-        if (this.isInitialized() && ixObject.sender !== this.getAddress()) {
-            ErrorUtils.throwError("Sender address mismatches with the signer", ErrorCode.UNEXPECTED_ARGUMENT);
-        }
-        if (ixObject.ix_operations == null || ixObject.ix_operations.length == 0) {
-            ErrorUtils.throwError("Operations list is missing", ErrorCode.MISSING_ARGUMENT);
-        }
-        if (method === "send") {
-            if (ixObject.fuel_price == null) {
-                ErrorUtils.throwError("Fuel price is missing", ErrorCode.MISSING_ARGUMENT);
-            }
-            if (ixObject.fuel_limit == null) {
-                ErrorUtils.throwError("Fuel limit is missing", ErrorCode.MISSING_ARGUMENT);
-            }
-            if (typeof ixObject.fuel_price !== "number" && typeof ixObject.fuel_price !== "bigint") {
-                ErrorUtils.throwError(`Invalid fuel price. Expected number or bigint, got ${typeof ixObject.fuel_price}`, ErrorCode.INVALID_ARGUMENT);
-            }
-            if (typeof ixObject.fuel_limit !== "number" && typeof ixObject.fuel_limit !== "bigint") {
-                ErrorUtils.throwError(`Invalid fuel limit. Expected number or bigint, got ${typeof ixObject.fuel_limit}`, ErrorCode.INVALID_ARGUMENT);
-            }
-            if (ixObject.fuel_price < 0) {
-                ErrorUtils.throwError("Fuel price cannot be negative", ErrorCode.INTERACTION_UNDERPRICED);
-            }
-            if (ixObject.fuel_limit <= 0) {
-                ErrorUtils.throwError("Fuel limit must be greater than 0", ErrorCode.INVALID_ARGUMENT);
-            }
-            if (ixObject.nonce != null) {
-                const nonce = await this.getNonce({ tesseract_number: -1 });
-                if (ixObject.nonce < nonce) {
-                    ErrorUtils.throwError("Invalid nonce", ErrorCode.NONCE_EXPIRED);
-                }
-            }
-        }
+        return {
+            id: (await this.getIdentifier()).toHex(),
+            key_id: sender.key_id ?? (await this.getKeyId()),
+            sequence: sender.sequence ?? (await this.getLatestSequence()),
+        };
     }
-    /**
-     * Prepares the interaction object by populating necessary fields and
-     * performing validity checks.
-     *
-     * @param {InteractionMethod} method - The method for which the interaction is being prepared.
-     * @param {InteractionObject} ixObject - The interaction object to prepare.
-     * @returns {Promise<void>} A Promise that resolves once the preparation is complete.
-     * @throws {Error} if the interaction object is not valid or if there is
-     * an error during preparation.
-     */
-    async prepareInteraction(method, ixObject) {
-        if (!ixObject.sender) {
-            ixObject.sender = this.getAddress();
+    async createSimulateIxRequest(arg) {
+        // request was array of operations
+        if (Array.isArray(arg)) {
+            return {
+                sender: await this.createIxRequestSender(),
+                fuel_price: this.fuelPrice,
+                operations: arg,
+            };
         }
-        await this.checkInteraction(method, ixObject);
-        if (method === "send" && ixObject.nonce == null) {
-            ixObject.nonce = await this.getNonce();
+        // request was single operation
+        if (typeof arg === "object" && "type" in arg && "payload" in arg) {
+            return {
+                sender: await this.createIxRequestSender(),
+                fuel_price: this.fuelPrice,
+                operations: [arg],
+            };
         }
+        // request was simulate interaction request without `sender` and `fuel_price`
+        return {
+            ...arg,
+            sender: await this.createIxRequestSender(arg.sender),
+            fuel_price: arg.fuel_price ?? this.fuelPrice,
+        };
     }
-    /**
-     * Initiates an interaction by calling a method on the connected provider.
-     * The interaction object is prepared and sent to the provider for execution.
-     *
-     * @param {InteractionObject} ixObject - The interaction object to be executed.
-     * @returns {Promise<InteractionCallResponse>} A Promise that resolves to the
-     * interaction call response.
-     * @throws {Error} if there is an error during the interaction, if the provider
-     * is not initialized,or if the interaction object fails validity checks.
-     */
-    async call(ixObject) {
-        // Get the provider
-        const provider = this.getProvider();
-        await this.prepareInteraction('call', ixObject);
-        return await provider.call(ixObject);
-    }
-    /**
-     * Estimates the fuel required for executing an interaction.
-     * The interaction object is used to estimate the amount of fuel needed for execution.
-     *
-     * @param {InteractionObject} ixObject - The interaction object for which
-     * fuel estimation is needed.
-     * @returns {Promise<number | bigint>} A Promise that resolves to the
-     * estimated fuel amount.
-     * @throws {Error} if there is an error during fuel estimation, if the
-     * provider is not initialized, or if the interaction object fails
-     * validity checks.
-     */
-    async estimateFuel(ixObject) {
-        // Get the provider
-        const provider = this.getProvider();
-        await this.prepareInteraction('estimateFuel', ixObject);
-        return await provider.estimateFuel(ixObject);
-    }
-    /**
-     * Sends an interaction object by signing it with the appropriate signature algorithm
-     * and forwarding it to the connected provider.
-     *
-     * @param {InteractionObject} ixObject - The interaction object to send.
-     * @returns {Promise<InteractionResponse>} A Promise that resolves to the
-     * interaction response.
-     * @throws {Error} if there is an error sending the interaction, if the provider
-     * is not initialized, or if the interaction object fails the validity checks.
-     */
-    async sendInteraction(ixObject) {
-        try {
-            // Get the provider
-            const provider = this.getProvider();
-            // Get the signature algorithm
-            const sigAlgo = this.signingAlgorithms["ecdsa_secp256k1"];
-            await this.prepareInteraction('send', ixObject);
-            // Sign the interaction object
-            const ixRequest = this.signInteraction(ixObject, sigAlgo);
-            // Send the interaction request and return the response
-            return await provider.sendInteraction(ixRequest);
+    async createIxRequest(type, args) {
+        const simulateIxRequest = await this.createSimulateIxRequest(args);
+        if (type === "moi.Simulate") {
+            return simulateIxRequest;
         }
-        catch (err) {
-            throw err;
+        if (typeof args === "object" && "fuel_limit" in args && typeof args.fuel_limit === "number") {
+            return { ...simulateIxRequest, fuel_limit: args.fuel_limit };
         }
+        const simulation = await this.simulate(simulateIxRequest);
+        const executeIxRequest = {
+            ...simulateIxRequest,
+            fuel_limit: simulation.fuel_spent,
+        };
+        const err = validateIxRequest("moi.Execute", executeIxRequest);
+        if (err != null) {
+            ErrorUtils.throwError(`Invalid interaction request: ${err.message}`, ErrorCode.INVALID_ARGUMENT, { ...err });
+        }
+        return executeIxRequest;
+    }
+    async simulate(arg, option) {
+        const request = await this.createIxRequest("moi.Simulate", arg);
+        return await this.getProvider().simulate(request, option);
+    }
+    async execute(arg) {
+        const { ecdsa_secp256k1: algorithm } = this.signingAlgorithms;
+        // checking argument is an already signed request
+        if (typeof arg === "object" && "interaction" in arg && "signatures" in arg) {
+            if (!isHex(arg.interaction)) {
+                ErrorUtils.throwError("Invalid interaction provided. Not a valid hex.", ErrorCode.INVALID_ARGUMENT, {
+                    interaction: arg.interaction,
+                });
+            }
+            if (!Array.isArray(arg.signatures)) {
+                ErrorUtils.throwError("Invalid signatures provided. Not an array.", ErrorCode.INVALID_ARGUMENT, {
+                    signatures: arg.signatures,
+                });
+            }
+            return await this.getProvider().execute(arg);
+        }
+        const request = await this.createIxRequest("moi.Execute", arg);
+        if (request.sender.sequence < (await this.getLatestSequence())) {
+            ErrorUtils.throwError("Sequence number is outdated", ErrorCode.SEQUENCE_EXPIRED);
+        }
+        const error = validateIxRequest("moi.Execute", request);
+        if (error != null) {
+            ErrorUtils.throwError(`Invalid interaction request: ${error.message}`, ErrorCode.INVALID_ARGUMENT, error);
+        }
+        const signedRequest = await this.signInteraction(request, algorithm);
+        return await this.getProvider().execute(signedRequest);
     }
     /**
      * Verifies the authenticity of a signature by performing signature verification

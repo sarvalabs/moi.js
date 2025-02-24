@@ -1,0 +1,1 @@
+{"version":3,"file":"voyage-provider.d.ts","sourceRoot":"","sources":["../../src.ts/provider/voyage-provider.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,YAAY,EAAE,MAAM,iBAAiB,CAAC;AAE/C,oBAAY,WAAW;IACnB;;OAEG;IACH,OAAO,+CAA+C;CACzD;AAED;;GAEG;AACH,qBAAa,cAAe,SAAQ,YAAY;IAC5C;;;OAGG;gBACS,IAAI,EAAE,WAAW;CAShC"}

@@ -18,11 +18,12 @@ export enum ErrorCode {
     PROPERTY_NOT_DEFINED = "ERROR_PROPERTY_NOT_DEFINED",
     CALL_EXCEPTION = "ERROR_CALL_EXCEPTION",
     INSUFFICIENT_FUNDS = "ERROR_INSUFFICIENT_FUNDS",
-    NONCE_EXPIRED = "ERROR_NONCE_EXPIRED",
+    SEQUENCE_EXPIRED = "ERROR_NONCE_EXPIRED",
     INTERACTION_UNDERPRICED = "ERROR_INTERACTION_UNDERPRICED",
     UNPREDICTABLE_FUEL_LIMIT = "ERROR_UNPREDICTABLE_FUEL_LIMIT",
     ACTION_REJECTED = "ERROR_ACTION_REJECTED",
-    INVALID_SIGNATURE = "ERROR_INVALID_SIGNATURE"
+    INVALID_SIGNATURE = "ERROR_INVALID_SIGNATURE",
+    NOT_FOUND = "ERROR_NOT_FOUND",
 }
 
 /**
@@ -36,11 +37,11 @@ interface ErrorParams {
  * CustomError class that extends the Error class.
  */
 export class CustomError extends Error {
-    public code: ErrorCode;
+    public code: ErrorCode | string | number;
     public reason: string;
     public params: ErrorParams;
 
-    constructor(message: string, code: ErrorCode = ErrorCode.UNKNOWN_ERROR, params: ErrorParams = {}) {
+    constructor(message: string, code: ErrorCode | string | number = ErrorCode.UNKNOWN_ERROR, params: ErrorParams = {}) {
         super(message);
         this.code = code;
         this.reason = message;
@@ -50,15 +51,15 @@ export class CustomError extends Error {
 
     /**
      * Overrides the toString() method to provide a string representation of the error.
-     * 
+     *
      * @returns {string} - The string representation of the error.
      */
     public toString(): string {
         const messageDetails = Object.entries(this.params)
             .map(([key, value]) => `${key}=${serializeValue(value)}`)
-            .join(', ');
+            .join(", ");
 
-        const errorMessageStack = messageDetails ? ` (${messageDetails})` : '';
+        const errorMessageStack = messageDetails ? ` (${messageDetails})` : "";
 
         return `${this.reason}${errorMessageStack}`;
     }
@@ -70,15 +71,15 @@ export class CustomError extends Error {
 export class ErrorUtils {
     /**
      * Throws a CustomError with the specified message, error code, and parameters.
-     * 
+     *
      * @param {string} message - The error message.
      * @param {ErrorCode} code - The error code.
      * @param {ErrorParams} params - The parameters of the error.
      * @throws {CustomError} - Throws a CustomError.
      */
-    public static throwError(message: string, code: ErrorCode = ErrorCode.UNKNOWN_ERROR, params: ErrorParams = {}): never {
+    public static throwError(message: string, code?: ErrorCode | string | number, params: ErrorParams = {}): never {
         const error = new CustomError(message, code, params);
-        
+
         if (Error.captureStackTrace) {
             Error.captureStackTrace(error, ErrorUtils.throwError);
         }
@@ -87,9 +88,9 @@ export class ErrorUtils {
     }
 
     /**
-     * Throws a CustomError with the specified argument-related error message, 
+     * Throws a CustomError with the specified argument-related error message,
      * argument name, and value.
-     * 
+     *
      * @param {string} message - The error message.
      * @param {string} name - The name of the argument.
      * @param {any} value - The value of the argument.
@@ -119,4 +120,4 @@ const serializeValue = (value: any): string => {
     } catch (error) {
         return String(value);
     }
-}
+};

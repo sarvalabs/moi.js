@@ -1,7 +1,7 @@
 import { blake2b } from "@noble/hashes/blake2b";
-import { hmac } from '@noble/hashes/hmac';
-import { sha256 } from '@noble/hashes/sha256';
-import * as nobleECC from '@noble/secp256k1';
+import { hmac } from "@noble/hashes/hmac";
+import { sha256 } from "@noble/hashes/sha256";
+import * as nobleECC from "@noble/secp256k1";
 import { hexToBytes } from "js-moi-utils";
 import Signature from "./signature";
 import { JoinSignature, bip66Decode, bip66Encode, fromDER, toDER } from "./utils";
@@ -17,21 +17,14 @@ nobleECC.utils.hmacSha256Sync = (key, ...msgs) => hmac(sha256, key, nobleECC.uti
  * Represents the ECDSA_S256 signature type.
  */
 export default class ECDSA_S256 {
-    prefix;
-    sigName;
-    constructor() {
-        this.prefix = 1;
-        this.sigName = "ECDSA_S256";
-    }
+    prefix = 1;
+    sigName = "ECDSA_S256";
     /**
-     * sign
+     * Signs a message using the provided signing key.
      *
-     * Signs a message using the ECDSA_S256 signature algorithm.
-     *
-     * @param message - The message to be signed, as a Buffer.
-     * @param signingKey - The private key used for signing, either as
-     * a hexadecimal string or a Buffer.
-     * @returns A Signature instance with ECDSA_S256 prefix and parity byte as extra data
+     * @param message - The message to be signed as a Uint8Array.
+     * @param signingKey - The signing key, which can be either a Uint8Array or a hexadecimal string.
+     * @returns A Signature object containing the signed message.
      */
     sign(message, signingKey) {
         let _signingKey;
@@ -47,7 +40,7 @@ export default class ECDSA_S256 {
         const sigParts = nobleECC.signSync(messageHash, _signingKey, { der: false });
         const digest = {
             _r: toDER(sigParts.slice(0, 32)),
-            _s: toDER(sigParts.slice(32, 64))
+            _s: toDER(sigParts.slice(32, 64)),
         };
         const signature = bip66Encode(digest);
         const prefixArray = new Uint8Array(2);
@@ -71,17 +64,17 @@ export default class ECDSA_S256 {
      * @returns boolean, to determine whether verification is success/failure
      */
     verify(message, signature, publicKey) {
-        let verificationKey = new Uint8Array(signature.Extra().length + publicKey.length);
-        verificationKey.set(signature.Extra());
-        verificationKey.set(publicKey, signature.Extra().length);
-        let derSignature = signature.Digest();
+        let verificationKey = new Uint8Array(signature.extra().length + publicKey.length);
+        verificationKey.set(signature.extra());
+        verificationKey.set(publicKey, signature.extra().length);
+        let derSignature = signature.digest();
         const messageHash = blake2b(message, {
             dkLen: 1 << 5, // Hashing raw message with blake2b to get 32 bytes digest
         });
         const _digest = bip66Decode(derSignature);
         const sigDigest = {
             _r: fromDER(_digest._r),
-            _s: fromDER(_digest._s)
+            _s: fromDER(_digest._s),
         };
         return nobleECC.verify(JoinSignature(sigDigest), messageHash, verificationKey, { strict: true });
     }

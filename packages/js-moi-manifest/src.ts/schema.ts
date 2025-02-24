@@ -1,6 +1,5 @@
-import { ErrorCode, ErrorUtils } from "js-moi-utils";
+import { ElementType, ErrorCode, ErrorUtils, type LogicElement, type TypeField } from "js-moi-utils";
 import { Schema as PoloSchema } from "js-polo";
-import { LogicManifest } from "../types/manifest";
 
 const ARRAY_MATCHER_REGEX = /^\[(\d*)\]/;
 
@@ -31,10 +30,10 @@ export const isClass = (type: string, classDefs: Map<string, number>): boolean =
  * @class
  */
 export class Schema {
-    private elements: Map<number, LogicManifest.Element>;
+    private elements: Map<number, LogicElement>;
     private classDefs: Map<string, number>;
 
-    constructor(elements: Map<number, LogicManifest.Element>, classDefs: Map<string, number>) {
+    constructor(elements: Map<number, LogicElement>, classDefs: Map<string, number>) {
         this.elements = elements;
         this.classDefs = classDefs;
     }
@@ -52,7 +51,7 @@ export class Schema {
                         kind: "string",
                     },
                 },
-            }
+            },
         },
     };
 
@@ -240,10 +239,10 @@ export class Schema {
                 kind: "integer",
             },
             fields: {
-                ...Schema.PISA_TYPE_FIELD_SCHEMA, 
-            }
-        }
-    }
+                ...Schema.PISA_TYPE_FIELD_SCHEMA,
+            },
+        },
+    };
 
     public static PISA_EXCEPTION_SCHEMA = {
         kind: "struct",
@@ -276,6 +275,15 @@ export class Schema {
             },
             error: {
                 kind: "bytes",
+            },
+        },
+    };
+
+    public static PISA_BUILT_IN_LOG_SCHEMA = {
+        kind: "struct",
+        fields: {
+            value: {
+                kind: "string",
             },
         },
     };
@@ -335,10 +343,7 @@ export class Schema {
         const value = dataType.replace("map[" + key + "]", "");
 
         if (!key || !value) {
-            ErrorUtils.throwError(
-                "Failed to extract map type: The key or value type of the map could not be determined.",
-                ErrorCode.INVALID_ARGUMENT
-            );
+            ErrorUtils.throwError("Failed to extract map type: The key or value type of the map could not be determined.", ErrorCode.INVALID_ARGUMENT);
         }
 
         return [key, value];
@@ -379,7 +384,7 @@ export class Schema {
      * @param {string} className - The name of the class.
      * @returns {object} The schema for the class.
      */
-    public static parseClassFields(className: string, classDef: Map<string, number>, elements: Map<number, LogicManifest.Element>): PoloSchema {
+    public static parseClassFields(className: string, classDef: Map<string, number>, elements: Map<number, LogicElement>): PoloSchema {
         const ptr = classDef.get(className);
         if (ptr === undefined) {
             ErrorUtils.throwError(`Invalid class name: ${className}`, ErrorCode.INVALID_ARGUMENT);
@@ -392,7 +397,10 @@ export class Schema {
             fields: {},
         };
 
-        element.data = element.data as LogicManifest.Class;
+        if (element?.kind !== ElementType.Class) {
+            ErrorUtils.throwError(`Invalid class element: ${className}`, ErrorCode.INVALID_ARGUMENT);
+        }
+
         Object.values(element.data.fields).forEach((field) => {
             schema.fields[field.label] = Schema.parseDataType(field.type, classDef, elements);
         });
@@ -409,7 +417,7 @@ export class Schema {
      * @returns {object} The schema generated based on the data type.
      * @throws {Error} If the data type is unsupported.
      */
-    public static parseDataType(type: string, classDef: Map<string, number>, elements: Map<number, LogicManifest.Element>): PoloSchema {
+    public static parseDataType(type: string, classDef: Map<string, number>, elements: Map<number, LogicElement>): PoloSchema {
         switch (true) {
             case isPrimitiveType(type):
                 return {
@@ -446,7 +454,7 @@ export class Schema {
      * @returns {PoloSchema} The generated schema based on the fields.
      * @throws {Error} If the fields are invalid or contain unsupported data types.
      */
-    public parseFields(fields: LogicManifest.TypeField[]): PoloSchema {
+    public parseFields(fields: TypeField[]): PoloSchema {
         const schema = {
             kind: "struct",
             fields: {},

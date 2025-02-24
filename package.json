@@ -7,14 +7,13 @@
   "module": "packages/js-moi/lib.esm/index.js",
   "scripts": {
     "clean": "find . -path ./node_modules -prune -o -type d \\( -name 'lib.cjs' -o -name 'lib.esm' \\) -exec rm -rf {} +",
-    "build": "tsc -b && rm -rf dist",
+    "build": "./scripts/build.sh",
     "watch": "tsc -b -w",
-    "test": "jest --env=node --colors --verbose",
+    "test": "jest --color",
+    "test:network": "RUN_NETWORK_TEST=true npm run test",
     "check-types": "tsc --noEmit",
-    "test:coverage": "jest --coverage --env=node --colors --verbose",
     "docs": "make -C docs html",
-    "watch:docs": "make -C docs watch",
-    "prebuild": "npm run clean"
+    "watch:docs": "make -C docs watch"
   },
   "repository": {
     "type": "git",
@@ -35,27 +34,15 @@
   "author": "",
   "license": "Apache-2.0 OR MIT",
   "devDependencies": {
-    "@types/aes-js": "^3.1.4",
-    "@types/jest": "^29.4.0",
-    "jest": "^29.4.3",
-    "jsdoc": "^4.0.2",
-    "ts-jest": "^29.0.5",
-    "ts-node": "10.9.2",
-    "typescript": "^5.6.3"
+    "@types/jest": "^29.5.14",
+    "deepmerge": "^4.3.1",
+    "jest": "^29.7.0",
+    "jsdoc": "^4.0.4",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.3"
   },
   "dependencies": {
-    "@noble/hashes": "^1.1.5",
-    "@noble/secp256k1": "^1.7.1",
-    "@scure/bip32": "^1.4.0",
-    "aes-js": "4.0.0-beta.5",
-    "assert": "^2.0.0",
-    "bn.js": "^5.2.1",
-    "buffer": "^6.0.3",
-    "cross-fetch": "^4.0.0",
-    "elliptic": "^6.5.4",
-    "js-polo": "0.1.4",
-    "stream": "npm:stream-browserify",
-    "websocket": "^1.0.34"
+    "js-polo": "^0.1.4"
   },
   "sideEffects": false
 }

@@ -1,5 +1,4 @@
 import { HDKey } from "@scure/bip32";
-import { Buffer } from "buffer";
 /**
  * This class represents a Hierarchical Deterministic (HD) Node used in
  * cryptographic key generation and derivation.
@@ -8,12 +7,12 @@ export declare class HDNode {
     private node;
     constructor(node: HDKey);
     /**
-     * Generates an HDNode from a seed buffer.
+     * Generates an HDNode from a seed.
      *
-     * @param {Buffer} seed - The seed buffer.
+     * @param {Uint8Array} seed - The seed value.
      * @throws {Error} If an error occurs during the HDNode generation.
      */
-    static fromSeed(seed: Buffer): HDNode;
+    static fromSeed(seed: Uint8Array): HDNode;
     /**
      * Generates an HDNode from an extended key.
      *
@@ -50,16 +49,16 @@ export declare class HDNode {
     /**
      * Retrieves the public key associated with the HDNode.
      *
-     * @returns {Buffer} The public key.
+     * @returns {Uint8Array} The public key.
      * @throws {Error} If the HDNode is not initialized.
      */
-    publicKey(): Buffer;
+    publicKey(): Uint8Array;
     /**
      * Retrieves the private key associated with the HDNode.
      *
-     * @returns {Buffer} The private key.
+     * @returns {Uint8Array} The private key.
      * @throws {Error} If the HDNode is not initialized or private key is not available.
      */
-    privateKey(): Buffer;
+    privateKey(): Uint8Array;
 }
 //# sourceMappingURL=hdnode.d.ts.map

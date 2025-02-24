@@ -48,7 +48,7 @@ class Schema {
                         kind: "string",
                     },
                 },
-            }
+            },
         },
     };
     static PISA_DEPS_SCHEMA = {
@@ -226,8 +226,8 @@ class Schema {
             },
             fields: {
                 ...Schema.PISA_TYPE_FIELD_SCHEMA,
-            }
-        }
+            },
+        },
     };
     static PISA_EXCEPTION_SCHEMA = {
         kind: "struct",
@@ -259,6 +259,14 @@ class Schema {
             },
             error: {
                 kind: "bytes",
+            },
+        },
+    };
+    static PISA_BUILT_IN_LOG_SCHEMA = {
+        kind: "struct",
+        fields: {
+            value: {
+                kind: "string",
             },
         },
     };
@@ -356,7 +364,9 @@ class Schema {
             kind: "struct",
             fields: {},
         };
-        element.data = element.data;
+        if (element?.kind !== js_moi_utils_1.ElementType.Class) {
+            js_moi_utils_1.ErrorUtils.throwError(`Invalid class element: ${className}`, js_moi_utils_1.ErrorCode.INVALID_ARGUMENT);
+        }
         Object.values(element.data.fields).forEach((field) => {
             schema.fields[field.label] = Schema.parseDataType(field.type, classDef, elements);
         });

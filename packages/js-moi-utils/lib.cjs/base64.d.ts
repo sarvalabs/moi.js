@@ -1,6 +1,4 @@
 /**
- * encodeBase64
- *
  * Encodes a Uint8Array into a base64 string.
  *
  * @param {Uint8Array} uint8Array - The Uint8Array to encode.
